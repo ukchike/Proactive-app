@@ -53,8 +53,11 @@ jobs:
         with:
           tag_name: v0.1.0-build.${{ github.run_number }}
           name: Debug build ${{ github.run_number }}
+          # Must be a full (non-pre) release so GitHub's /releases/latest endpoint
+          # resolves it — that's what makes the stable download URL work:
+          #   /releases/latest/download/app-debug.apk
           make_latest: true
-          prerelease: true
+          prerelease: false
           body: |
             Automated debug build from `main` (commit ${{ github.sha }}).
 
