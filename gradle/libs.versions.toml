@@ -14,7 +14,9 @@ junit = "4.13.2"
 androidxJunit = "1.2.1"
 espresso = "3.6.1"
 playServicesAuth = "21.2.0"
-richeditor = "1.0.0-rc14"
+# rc10 is the last release built with Kotlin 2.0.x (stdlib 2.0.21); rc11+ moved to
+# Kotlin 2.1/2.3 whose metadata our 2.0.21 compiler can't read.
+richeditor = "1.0.0-rc10"
 serialization = "1.7.3"
 
 [libraries]
