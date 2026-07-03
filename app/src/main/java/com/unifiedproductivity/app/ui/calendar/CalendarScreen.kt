@@ -1,5 +1,8 @@
 package com.unifiedproductivity.app.ui.calendar
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,15 +25,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,12 +58,16 @@ import com.unifiedproductivity.app.util.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(viewModel: CalendarViewModel) {
+fun CalendarScreen(
+    viewModel: CalendarViewModel,
+    onOpenNote: (String) -> Unit
+) {
     val visibleMonth by viewModel.visibleMonth.collectAsStateWithLifecycle()
     val selectedDay by viewModel.selectedDay.collectAsStateWithLifecycle()
     val monthEvents by viewModel.monthEvents.collectAsStateWithLifecycle()
     val dayEvents by viewModel.selectedDayEvents.collectAsStateWithLifecycle()
     var showAdd by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Event?>(null) }
 
     Scaffold(
         topBar = {
@@ -105,7 +112,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
             if (dayEvents.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     Text(
-                        "No events",
+                        "No events — tap + to schedule one",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.padding(24.dp)
                     )
@@ -119,6 +126,8 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                         EventItem(
                             event = event,
                             color = parseHexColor(event.color ?: viewModel.calendarColor(event.calendarId)),
+                            onClick = { editing = event },
+                            onOpenNote = { viewModel.openLinkedNote(event, onOpenNote) },
                             onDelete = { viewModel.deleteEvent(event.id) }
                         )
                     }
@@ -127,14 +136,16 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
         }
     }
 
-    if (showAdd) {
-        AddEventDialog(
+    if (showAdd || editing != null) {
+        EventEditorDialog(
+            initial = editing,
             day = selectedDay,
             defaultCalendarId = viewModel.defaultCalendarId(),
-            onDismiss = { showAdd = false },
+            onDismiss = { showAdd = false; editing = null },
             onSave = { event, attachNote ->
                 viewModel.saveEvent(event, attachNote)
                 showAdd = false
+                editing = null
             }
         )
     }
@@ -241,8 +252,15 @@ private fun DayCell(
 }
 
 @Composable
-private fun EventItem(event: Event, color: Color, onDelete: () -> Unit) {
-    Card {
+private fun EventItem(
+    event: Event,
+    color: Color,
+    onClick: () -> Unit,
+    onOpenNote: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+    Card(onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -266,6 +284,30 @@ private fun EventItem(event: Event, color: Color, onDelete: () -> Unit) {
                     Text(event.location, style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
+                if (event.linkedReminderId != null) {
+                    Text(
+                        "Linked to a reminder",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+            if (!event.location.isNullOrBlank()) {
+                IconButton(onClick = {
+                    val uri = Uri.parse("geo:0,0?q=${Uri.encode(event.location)}")
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    } catch (e: ActivityNotFoundException) {
+                        // No maps app installed — nothing to do.
+                    }
+                }) {
+                    Icon(Icons.Filled.Map, contentDescription = "Open in maps",
+                        tint = MaterialTheme.colorScheme.secondary)
+                }
+            }
+            IconButton(onClick = onOpenNote) {
+                Icon(Icons.Filled.Description, contentDescription = "Meeting note",
+                    tint = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Filled.Delete, contentDescription = "Delete",
@@ -273,73 +315,4 @@ private fun EventItem(event: Event, color: Color, onDelete: () -> Unit) {
             }
         }
     }
-}
-
-@Composable
-private fun AddEventDialog(
-    day: Long,
-    defaultCalendarId: String?,
-    onDismiss: () -> Unit,
-    onSave: (Event, Boolean) -> Unit
-) {
-    var title by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var allDay by remember { mutableStateOf(false) }
-    var attachNote by remember { mutableStateOf(false) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New Event") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    placeholder = { Text("Event title") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    placeholder = { Text("Location (optional)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = allDay, onClick = { allDay = !allDay }, label = { Text("All day") })
-                    FilterChip(selected = attachNote, onClick = { attachNote = !attachNote }, label = { Text("Attach note") })
-                }
-                Text(
-                    "On ${DateTimeUtils.formatDate(day)}${if (!allDay) ", 9:00–10:00 AM" else ""}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (title.isNotBlank() && defaultCalendarId != null) {
-                        val start = if (allDay) DateTimeUtils.startOfDay(day)
-                        else DateTimeUtils.startOfDay(day) + 9 * 60 * 60 * 1000L
-                        val end = if (allDay) DateTimeUtils.endOfDay(day)
-                        else start + 60 * 60 * 1000L
-                        onSave(
-                            Event(
-                                calendarId = defaultCalendarId,
-                                title = title.trim(),
-                                location = location.trim().ifBlank { null },
-                                startDateTime = start,
-                                endDateTime = end,
-                                isAllDay = allDay
-                            ),
-                            attachNote
-                        )
-                    }
-                }
-            ) { Text("Add") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
 }

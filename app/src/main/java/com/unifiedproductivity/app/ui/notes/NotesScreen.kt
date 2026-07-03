@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.unifiedproductivity.app.data.entity.Note
+import com.unifiedproductivity.app.ui.common.SwipeToDelete
 import com.unifiedproductivity.app.util.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,12 +126,13 @@ fun NotesScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(notes, key = { it.id }) { note ->
-                        NoteCard(
-                            note = note,
-                            onClick = { onOpenNote(note.id) },
-                            onPin = { viewModel.togglePin(note) },
-                            onDelete = { viewModel.deleteNote(note.id) }
-                        )
+                        SwipeToDelete(onDelete = { viewModel.deleteNote(note.id) }) {
+                            NoteCard(
+                                note = note,
+                                onClick = { onOpenNote(note.id) },
+                                onPin = { viewModel.togglePin(note) }
+                            )
+                        }
                     }
                 }
             }
@@ -150,7 +151,7 @@ fun NotesScreen(
 }
 
 @Composable
-private fun NoteCard(note: Note, onClick: () -> Unit, onPin: () -> Unit, onDelete: () -> Unit) {
+private fun NoteCard(note: Note, onClick: () -> Unit, onPin: () -> Unit) {
     Card(onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, bottom = 12.dp),
@@ -187,10 +188,6 @@ private fun NoteCard(note: Note, onClick: () -> Unit, onPin: () -> Unit, onDelet
                     tint = if (note.isPinned) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                 )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f))
             }
         }
     }

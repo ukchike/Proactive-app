@@ -33,7 +33,9 @@ private val DarkColors = darkColorScheme(
 @Composable
 fun UnifiedProductivityTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    // Dynamic (Material You) color is off by default: it overrides the per-module
+    // accent palette and breaks the Apple-like visual identity the spec asks for.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

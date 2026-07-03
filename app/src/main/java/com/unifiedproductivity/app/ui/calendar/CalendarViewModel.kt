@@ -67,6 +67,12 @@ class CalendarViewModel(
         if (attachNote) linkService.createNoteForEvent(event)
     }
 
+    /** Open the event's linked meeting note, creating it on first tap. */
+    fun openLinkedNote(event: Event, onReady: (String) -> Unit) = viewModelScope.launch {
+        val note = linkService.getOrCreateNoteForEvent(event)
+        onReady(note.id)
+    }
+
     fun deleteEvent(id: String) = viewModelScope.launch { repository.deleteEvent(id) }
 
     fun defaultCalendarId(): String? = calendars.value.firstOrNull()?.id

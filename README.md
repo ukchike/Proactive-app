@@ -111,7 +111,18 @@ app/src/main/java/com/unifiedproductivity/app/
 
 **Cross-module integration** (`LinkService`)
 - Reminder → Calendar focus-time block (color-coded by priority; archived when the reminder completes)
-- Event → pre-filled, bidirectionally linked meeting note
+- Event → pre-filled, bidirectionally linked meeting note; the note button on any
+  event opens its meeting note (created on first tap)
+- Link indicators on rows (reminder shows a calendar icon when time is blocked;
+  event shows when it's tied to a reminder); Home rows jump to their module
+
+**Editing & interaction (Apple-style)**
+- Tap any reminder or event to edit it in place; real date & time pickers
+- Swipe left to delete notes and reminders
+- Locations on both reminders and events; event locations open in the maps app
+- Notes can be filed into folders from the editor
+- Manual **System / Light / Dark** theme switch in Settings (dynamic color disabled
+  so the per-module accent palette stays consistent)
 
 **Notifications**
 - Local due-date notifications via `AlarmManager` + a broadcast receiver

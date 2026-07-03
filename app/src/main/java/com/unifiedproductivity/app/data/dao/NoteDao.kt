@@ -38,6 +38,10 @@ interface NoteDao {
     @Query("SELECT * FROM notes")
     suspend fun getAllRaw(): List<Note>
 
+    /** The meeting note linked to a calendar event, if one exists. */
+    @Query("SELECT * FROM notes WHERE linkedEventId = :eventId AND deletedAt IS NULL LIMIT 1")
+    suspend fun findByLinkedEvent(eventId: String): Note?
+
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
     fun observeById(id: String): Flow<Note?>
 

@@ -34,7 +34,7 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             ) as T
 
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-            SettingsViewModel(container.driveSyncManager) as T
+            SettingsViewModel(container.driveSyncManager, container.themePreferences) as T
 
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }

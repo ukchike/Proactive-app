@@ -58,6 +58,10 @@ class LinkService(
         reminder.linkedEventId?.let { calendar.deleteEvent(it) }
     }
 
+    /** The event's linked meeting note, created on first access. */
+    suspend fun getOrCreateNoteForEvent(event: Event): Note =
+        notes.findByLinkedEvent(event.id) ?: createNoteForEvent(event)
+
     /**
      * Create a meeting note pre-filled from an event and link the two. Returns the
      * new note so the caller can open the editor.

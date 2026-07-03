@@ -40,6 +40,8 @@ data class Reminder(
     val actualMinutes: Int? = null,
     val recurrence: RecurrenceFrequency = RecurrenceFrequency.NONE,
     val recurrenceInterval: Int = 1,
+    /** Free-form place/address (e.g. "Client office, Victoria Island"). */
+    val location: String? = null,
     /** Optional link to a calendar "focus time" block. */
     val linkedEventId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),

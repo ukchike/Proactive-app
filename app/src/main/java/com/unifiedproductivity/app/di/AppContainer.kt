@@ -8,6 +8,7 @@ import com.unifiedproductivity.app.data.repository.RemindersRepository
 import com.unifiedproductivity.app.integration.LinkService
 import com.unifiedproductivity.app.notifications.ReminderScheduler
 import com.unifiedproductivity.app.sync.DriveSyncManager
+import com.unifiedproductivity.app.ui.theme.ThemePreferences
 
 /**
  * Lightweight manual dependency container. Avoids pulling in a DI framework for
@@ -31,4 +32,6 @@ class AppContainer(context: Context) {
     val reminderScheduler = ReminderScheduler(appContext)
 
     val driveSyncManager = DriveSyncManager(appContext, database)
+
+    val themePreferences = ThemePreferences(appContext)
 }
