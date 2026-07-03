@@ -17,6 +17,9 @@ interface FolderDao {
     @Query("SELECT COUNT(*) FROM notes WHERE folderId = :folderId AND deletedAt IS NULL AND isArchived = 0")
     fun observeNoteCount(folderId: String): Flow<Int>
 
+    @Query("SELECT * FROM folders")
+    suspend fun getAllRaw(): List<Folder>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(folder: Folder)
 

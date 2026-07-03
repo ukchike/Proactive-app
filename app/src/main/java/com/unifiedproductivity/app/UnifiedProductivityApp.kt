@@ -4,6 +4,7 @@ import android.app.Application
 import com.unifiedproductivity.app.di.AppContainer
 import com.unifiedproductivity.app.data.entity.CalendarEntity
 import com.unifiedproductivity.app.data.entity.ReminderList
+import com.unifiedproductivity.app.notifications.NotificationHelper
 import com.unifiedproductivity.app.sync.SyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +22,7 @@ class UnifiedProductivityApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        NotificationHelper.ensureChannel(this)
         seedDefaults()
         SyncWorker.schedule(this)
     }

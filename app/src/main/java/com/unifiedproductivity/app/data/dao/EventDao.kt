@@ -33,6 +33,9 @@ interface EventDao {
     @Query("SELECT * FROM events WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): Event?
 
+    @Query("SELECT * FROM events")
+    suspend fun getAllRaw(): List<Event>
+
     @Query("SELECT * FROM events WHERE id = :id LIMIT 1")
     fun observeById(id: String): Flow<Event?>
 

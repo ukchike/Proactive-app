@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,16 +34,19 @@ import com.unifiedproductivity.app.ui.notes.NotesScreen
 import com.unifiedproductivity.app.ui.notes.NotesViewModel
 import com.unifiedproductivity.app.ui.reminders.RemindersScreen
 import com.unifiedproductivity.app.ui.reminders.RemindersViewModel
+import com.unifiedproductivity.app.ui.settings.SettingsScreen
+import com.unifiedproductivity.app.ui.settings.SettingsViewModel
 
 private sealed class TopLevel(val route: String, val label: String, val icon: ImageVector) {
     data object Home : TopLevel("home", "Home", Icons.Filled.Home)
     data object Notes : TopLevel("notes", "Notes", Icons.Filled.Description)
     data object Reminders : TopLevel("reminders", "Reminders", Icons.Filled.CheckCircle)
     data object Calendar : TopLevel("calendar", "Calendar", Icons.Filled.CalendarMonth)
+    data object Settings : TopLevel("settings", "Settings", Icons.Filled.Settings)
 }
 
 private val topLevelDestinations = listOf(
-    TopLevel.Home, TopLevel.Notes, TopLevel.Reminders, TopLevel.Calendar
+    TopLevel.Home, TopLevel.Notes, TopLevel.Reminders, TopLevel.Calendar, TopLevel.Settings
 )
 
 @Composable
@@ -112,6 +116,10 @@ fun AppRoot(container: AppContainer) {
             composable(TopLevel.Calendar.route) {
                 val vm: CalendarViewModel = viewModel(factory = factory)
                 CalendarScreen(viewModel = vm)
+            }
+            composable(TopLevel.Settings.route) {
+                val vm: SettingsViewModel = viewModel(factory = factory)
+                SettingsScreen(viewModel = vm)
             }
         }
     }

@@ -7,6 +7,7 @@ import com.unifiedproductivity.app.ui.calendar.CalendarViewModel
 import com.unifiedproductivity.app.ui.home.HomeViewModel
 import com.unifiedproductivity.app.ui.notes.NotesViewModel
 import com.unifiedproductivity.app.ui.reminders.RemindersViewModel
+import com.unifiedproductivity.app.ui.settings.SettingsViewModel
 
 /** Builds the module ViewModels, injecting repositories from [AppContainer]. */
 class AppViewModelFactory(private val container: AppContainer) : ViewModelProvider.Factory {
@@ -17,7 +18,11 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             NotesViewModel(container.notesRepository) as T
 
         modelClass.isAssignableFrom(RemindersViewModel::class.java) ->
-            RemindersViewModel(container.remindersRepository, container.linkService) as T
+            RemindersViewModel(
+                container.remindersRepository,
+                container.linkService,
+                container.reminderScheduler
+            ) as T
 
         modelClass.isAssignableFrom(CalendarViewModel::class.java) ->
             CalendarViewModel(container.calendarRepository, container.linkService) as T
@@ -27,6 +32,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
                 container.remindersRepository,
                 container.calendarRepository
             ) as T
+
+        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+            SettingsViewModel(container.driveSyncManager) as T
 
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }

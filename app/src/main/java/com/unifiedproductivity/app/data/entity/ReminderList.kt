@@ -2,9 +2,11 @@ package com.unifiedproductivity.app.data.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /** A user-created list that reminders belong to (e.g. "Tax Deadlines"). */
+@Serializable
 @Entity(tableName = "reminder_lists")
 data class ReminderList(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),

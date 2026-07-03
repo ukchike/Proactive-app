@@ -3,9 +3,11 @@ package com.unifiedproductivity.app.data.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /** A note folder. Supports unlimited nesting via [parentFolderId]. */
+@Serializable
 @Entity(
     tableName = "folders",
     indices = [Index("parentFolderId")]

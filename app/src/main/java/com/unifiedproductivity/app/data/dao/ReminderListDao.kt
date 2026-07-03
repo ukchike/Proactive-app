@@ -17,6 +17,9 @@ interface ReminderListDao {
     @Query("SELECT COUNT(*) FROM reminder_lists WHERE deletedAt IS NULL")
     suspend fun count(): Int
 
+    @Query("SELECT * FROM reminder_lists")
+    suspend fun getAllRaw(): List<ReminderList>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(list: ReminderList)
 

@@ -34,6 +34,10 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): Note?
 
+    /** Every row including archived/soft-deleted — used for Drive backup/sync. */
+    @Query("SELECT * FROM notes")
+    suspend fun getAllRaw(): List<Note>
+
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
     fun observeById(id: String): Flow<Note?>
 

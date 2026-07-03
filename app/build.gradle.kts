@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
 
@@ -77,6 +78,15 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // Google Sign-In (OAuth token for Drive appdata sync)
+    implementation(libs.play.services.auth)
+
+    // Rich-text note editor (Markdown-backed)
+    implementation(libs.richeditor.compose)
+
+    // JSON serialization for Google Drive backup/sync
+    implementation(libs.kotlinx.serialization.json)
 
     // Unit testing
     testImplementation(libs.junit)

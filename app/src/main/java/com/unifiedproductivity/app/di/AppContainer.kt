@@ -6,6 +6,8 @@ import com.unifiedproductivity.app.data.repository.CalendarRepository
 import com.unifiedproductivity.app.data.repository.NotesRepository
 import com.unifiedproductivity.app.data.repository.RemindersRepository
 import com.unifiedproductivity.app.integration.LinkService
+import com.unifiedproductivity.app.notifications.ReminderScheduler
+import com.unifiedproductivity.app.sync.DriveSyncManager
 
 /**
  * Lightweight manual dependency container. Avoids pulling in a DI framework for
@@ -13,6 +15,7 @@ import com.unifiedproductivity.app.integration.LinkService
  */
 class AppContainer(context: Context) {
 
+    private val appContext = context.applicationContext
     private val database = AppDatabase.getInstance(context)
 
     val notesRepository = NotesRepository(database.noteDao(), database.folderDao())
@@ -24,4 +27,8 @@ class AppContainer(context: Context) {
         CalendarRepository(database.calendarDao(), database.eventDao())
 
     val linkService = LinkService(remindersRepository, calendarRepository, notesRepository)
+
+    val reminderScheduler = ReminderScheduler(appContext)
+
+    val driveSyncManager = DriveSyncManager(appContext, database)
 }

@@ -63,17 +63,23 @@ app/src/main/java/com/unifiedproductivity/app/
 │   ├── Converters.kt             # Room type converters (List<String>)
 │   └── AppDatabase.kt            # RoomDatabase definition
 ├── integration/LinkService.kt    # Cross-module glue (reminder↔calendar, event→note)
+├── notifications/                # NotificationHelper, ReminderScheduler (AlarmManager),
+│                                 #   ReminderAlarmReceiver, BootReceiver
 ├── sync/
 │   ├── ConflictResolver.kt       # Last-write-wins merge (unit-tested)
-│   └── SyncWorker.kt             # WorkManager periodic sync (Drive upload stubbed — see below)
+│   ├── BackupManager.kt          # JSON snapshot export / merge / restore
+│   ├── DriveClient.kt            # Drive v3 REST calls (appDataFolder)
+│   ├── DriveSyncManager.kt       # Google Sign-In + push/pull orchestration
+│   └── SyncWorker.kt             # WorkManager periodic sync (runs when signed in)
 ├── util/DateTimeUtils.kt         # Date/recurrence helpers (unit-tested)
 └── ui/
     ├── AppRoot.kt                # Bottom nav + NavHost
     ├── theme/                    # Color, Type, Theme (per-module accents, dark mode)
     ├── home/                     # Unified dashboard (today's events + due/overdue tasks)
-    ├── notes/                    # Notes list + editor
+    ├── notes/                    # Notes list + rich-text editor
     ├── reminders/                # Reminders list, smart-list chips, add dialog
-    └── calendar/                 # Month grid + day agenda, add-event dialog
+    ├── calendar/                 # Month grid + day agenda, add-event dialog
+    └── settings/                 # Google Drive sign-in, sync / backup / restore
 ```
 
 ## Features implemented
@@ -83,7 +89,7 @@ app/src/main/java/com/unifiedproductivity/app/
 - Folders + folder filter chips
 - Full-text search across title & content
 - Tags, and specialized note *types* (meeting, research, journal, financial) in the model
-- Markdown/plain-text content (rich-text WYSIWYG is a later phase)
+- Rich-text WYSIWYG editor (bold/italic/underline/headings/lists), stored as Markdown
 
 **Reminders**
 - Create / complete / flag / delete, with priority (High/Medium/Low)
@@ -107,37 +113,54 @@ app/src/main/java/com/unifiedproductivity/app/
 - Reminder → Calendar focus-time block (color-coded by priority; archived when the reminder completes)
 - Event → pre-filled, bidirectionally linked meeting note
 
+**Notifications**
+- Local due-date notifications via `AlarmManager` + a broadcast receiver
+- Notification channel + runtime `POST_NOTIFICATIONS` request; exact-alarm fallback on Android 12+
+- Alarms re-armed after reboot; auto-cancelled when a reminder is completed or deleted
+
+**Rich-text notes**
+- WYSIWYG editor (bold / italic / underline / headings / bulleted & numbered lists) via compose-rich-editor
+- Content persisted as Markdown, so it stays portable and syncs cleanly
+
+**Google Drive sync** (Settings tab)
+- Google Sign-In with the `drive.appdata` scope (private app folder)
+- Sync now / Back up now / Restore, plus a periodic WorkManager sync when signed in
+- JSON snapshots (`notes.json`, `reminders.json`, `calendar.json`) merged last-write-wins
+
 ## Implementation status
 
 | Area | State |
 | --- | --- |
 | Local data layer (Room) for all 3 modules | ✅ Complete |
-| Notes / Reminders / Calendar UI | ✅ Functional (MVP scope) |
+| Notes / Reminders / Calendar UI | ✅ Functional |
+| Rich-text note editor (Markdown-backed) | ✅ Functional |
 | Home unified dashboard | ✅ Functional |
 | Cross-module linking | ✅ Functional |
+| Due-reminder notifications (alarm + boot re-arm) | ✅ Functional |
 | Conflict resolution (last-write-wins) | ✅ Implemented + unit-tested |
-| Date/recurrence utilities | ✅ Implemented + unit-tested |
-| WorkManager sync job | ⚙️ Scheduled; Drive transport stubbed |
-| **Google Drive OAuth + upload/download** | ⛔ Not wired — needs OAuth client credentials |
-| Rich-text editor, OCR, version history, geofencing | ⛔ Future phases (modeled where relevant) |
+| Google Drive sync (sign-in, push/pull, backup, restore) | ✅ Implemented — needs a Cloud OAuth client (below) |
+| OCR, note version history, geofencing | ⛔ Future phases (modeled where relevant) |
 
-### Wiring up Google Drive sync
+### Enabling Google Drive sync
 
-The merge machinery is done; the remaining step is the network transport. In
-`SyncWorker.doWork()`:
+The sync code is complete; to use it you register the app in a Google Cloud
+project (no secret is committed — Google Sign-In authenticates via the signing
+certificate):
 
-1. Add a Drive OAuth client ID (`drive.appdata` + `userinfo.email` scopes).
-2. Pull `sync/{notes,reminders,calendar}.json` from the Drive *appDataFolder*.
-3. `ConflictResolver.merge(local, remote)` per entity type.
-4. Push the merged state back up; keep daily backups under `backup/`.
+1. Create a project at [console.cloud.google.com](https://console.cloud.google.com) and **enable the Google Drive API**.
+2. Configure the OAuth consent screen (add your Google account as a test user).
+3. Create an **OAuth client ID → Android**, using the package name
+   `com.unifiedproductivity.app` and your APK's signing SHA-1
+   (`keytool -list -v -keystore <keystore>` — for the CI debug APK, the debug keystore's SHA-1).
+4. Install the app, open **Settings → Sign in with Google**, and approve Drive access.
 
-Soft deletes (`deletedAt`) already flow through every entity so deletions
-propagate across devices.
+Data lives in Drive's private *appDataFolder* (invisible to the rest of your
+Drive). Soft deletes (`deletedAt`) propagate across devices during sync.
 
 ## Design decisions (answers to the spec's open questions)
 
 - **Calendar view:** Month view first (most useful for planning); Day/Week are next.
-- **Notes formatting:** Plain-text/Markdown for the MVP; rich-text WYSIWYG deferred.
+- **Notes formatting:** Rich-text WYSIWYG, persisted as Markdown.
 - **Recurring reminders:** Supported (roll forward to next occurrence on completion).
 - **Time tracking:** Modeled (`estimatedMinutes`/`actualMinutes`); UI deferred.
 - **Conflict resolution:** Last-write-wins, as specified.

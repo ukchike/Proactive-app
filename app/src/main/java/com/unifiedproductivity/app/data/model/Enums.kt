@@ -1,6 +1,9 @@
 package com.unifiedproductivity.app.data.model
 
+import kotlinx.serialization.Serializable
+
 /** Priority levels for reminders, with an ordinal used for sorting. */
+@Serializable
 enum class Priority(val sortRank: Int, val label: String) {
     HIGH(0, "High"),
     MEDIUM(1, "Medium"),
@@ -9,6 +12,7 @@ enum class Priority(val sortRank: Int, val label: String) {
 }
 
 /** Specialized note templates (see spec: Notes module, "Note types"). */
+@Serializable
 enum class NoteType(val label: String) {
     FREE_FORM("Note"),
     MEETING("Meeting Notes"),
@@ -18,6 +22,7 @@ enum class NoteType(val label: String) {
 }
 
 /** How often a reminder or event repeats. Kept lightweight for the MVP. */
+@Serializable
 enum class RecurrenceFrequency {
     NONE, DAILY, WEEKLY, MONTHLY, YEARLY
 }
