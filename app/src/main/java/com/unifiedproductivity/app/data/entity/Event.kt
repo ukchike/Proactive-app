@@ -4,18 +4,21 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.unifiedproductivity.app.data.model.RecurrenceFrequency
+import com.unifiedproductivity.app.sync.ConflictResolver
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
  * A calendar event. [startDateTime]/[endDateTime] are epoch millis. All-day events
  * span the day of [startDateTime] and ignore the time component.
  */
+@Serializable
 @Entity(
     tableName = "events",
     indices = [Index("calendarId"), Index("startDateTime")]
 )
 data class Event(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey override val id: String = UUID.randomUUID().toString(),
     val calendarId: String,
     val title: String = "",
     val description: String = "",
@@ -34,6 +37,6 @@ data class Event(
     val linkedReminderId: String? = null,
     val travelTimeMinutes: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val modifiedAt: Long = System.currentTimeMillis(),
-    val deletedAt: Long? = null
-)
+    override val modifiedAt: Long = System.currentTimeMillis(),
+    override val deletedAt: Long? = null
+) : ConflictResolver.Versioned

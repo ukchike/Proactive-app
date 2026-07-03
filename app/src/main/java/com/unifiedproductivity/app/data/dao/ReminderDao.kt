@@ -47,6 +47,13 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): Reminder?
 
+    /** Non-completed reminders whose due date is still in the future (for alarm rescheduling). */
+    @Query(
+        "SELECT * FROM reminders WHERE deletedAt IS NULL AND isCompleted = 0 " +
+            "AND dueDate IS NOT NULL AND dueDate > :now"
+    )
+    suspend fun getUpcoming(now: Long): List<Reminder>
+
     @Query("SELECT * FROM reminders WHERE id = :id LIMIT 1")
     fun observeById(id: String): Flow<Reminder?>
 
@@ -66,6 +73,12 @@ interface ReminderDao {
 
     @Query("SELECT * FROM subtasks WHERE reminderId = :reminderId ORDER BY position")
     suspend fun getSubtasks(reminderId: String): List<Subtask>
+
+    @Query("SELECT * FROM reminders")
+    suspend fun getAllRaw(): List<Reminder>
+
+    @Query("SELECT * FROM subtasks")
+    suspend fun getAllSubtasksRaw(): List<Subtask>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSubtask(subtask: Subtask)

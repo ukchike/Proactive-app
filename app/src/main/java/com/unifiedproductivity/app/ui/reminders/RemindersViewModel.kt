@@ -7,6 +7,7 @@ import com.unifiedproductivity.app.data.entity.ReminderList
 import com.unifiedproductivity.app.data.model.SmartList
 import com.unifiedproductivity.app.data.repository.RemindersRepository
 import com.unifiedproductivity.app.integration.LinkService
+import com.unifiedproductivity.app.notifications.ReminderScheduler
 import com.unifiedproductivity.app.util.DateTimeUtils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -29,7 +30,8 @@ sealed interface ReminderFilter {
 @OptIn(ExperimentalCoroutinesApi::class)
 class RemindersViewModel(
     private val repository: RemindersRepository,
-    private val linkService: LinkService
+    private val linkService: LinkService,
+    private val scheduler: ReminderScheduler
 ) : ViewModel() {
 
     private val _filter = MutableStateFlow<ReminderFilter>(ReminderFilter.Smart(SmartList.TODAY))
@@ -80,7 +82,13 @@ class RemindersViewModel(
 
     fun toggleComplete(reminder: Reminder) = viewModelScope.launch {
         // Completing (transitioning from incomplete) also archives any linked focus block.
-        if (!reminder.isCompleted) linkService.onReminderCompleted(reminder)
+        if (!reminder.isCompleted) {
+            linkService.onReminderCompleted(reminder)
+            scheduler.cancel(reminder.id) // no alarm needed once done
+        } else {
+            // Re-opening a completed reminder — re-arm its alarm if still in the future.
+            scheduler.schedule(reminder.copy(isCompleted = false))
+        }
         repository.toggleComplete(reminder)
     }
 
@@ -88,10 +96,14 @@ class RemindersViewModel(
         repository.save(reminder.copy(isFlagged = !reminder.isFlagged))
     }
 
-    fun delete(id: String) = viewModelScope.launch { repository.delete(id) }
+    fun delete(id: String) = viewModelScope.launch {
+        scheduler.cancel(id)
+        repository.delete(id)
+    }
 
     fun save(reminder: Reminder, blockCalendarTime: Boolean = false) = viewModelScope.launch {
         repository.save(reminder)
+        scheduler.schedule(reminder)
         if (blockCalendarTime && reminder.dueDate != null) {
             linkService.blockTimeForReminder(reminder)
         }

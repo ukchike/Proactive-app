@@ -5,6 +5,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.unifiedproductivity.app.data.model.Priority
 import com.unifiedproductivity.app.data.model.RecurrenceFrequency
+import com.unifiedproductivity.app.sync.ConflictResolver
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -12,12 +14,13 @@ import java.util.UUID
  * the time component is ignored (all-day due date). Dependencies are modeled with
  * [blockedBy]: a reminder is "blocked" while any id it lists is still incomplete.
  */
+@Serializable
 @Entity(
     tableName = "reminders",
     indices = [Index("listId"), Index("dueDate"), Index("isCompleted")]
 )
 data class Reminder(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey override val id: String = UUID.randomUUID().toString(),
     val title: String = "",
     val description: String = "",
     val listId: String,
@@ -40,6 +43,6 @@ data class Reminder(
     /** Optional link to a calendar "focus time" block. */
     val linkedEventId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val modifiedAt: Long = System.currentTimeMillis(),
-    val deletedAt: Long? = null
-)
+    override val modifiedAt: Long = System.currentTimeMillis(),
+    override val deletedAt: Long? = null
+) : ConflictResolver.Versioned

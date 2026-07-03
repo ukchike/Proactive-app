@@ -20,6 +20,9 @@ interface CalendarDao {
     @Query("SELECT * FROM calendars WHERE name = :name AND deletedAt IS NULL LIMIT 1")
     suspend fun findByName(name: String): CalendarEntity?
 
+    @Query("SELECT * FROM calendars")
+    suspend fun getAllRaw(): List<CalendarEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(calendar: CalendarEntity)
 

@@ -33,6 +33,10 @@ class RemindersRepository(
 
     suspend fun getReminder(id: String): Reminder? = reminderDao.getById(id)
 
+    /** Upcoming, incomplete reminders with a future due date — used to reschedule alarms. */
+    suspend fun getUpcoming(): List<Reminder> =
+        reminderDao.getUpcoming(System.currentTimeMillis())
+
     suspend fun save(reminder: Reminder) =
         reminderDao.upsert(reminder.copy(modifiedAt = System.currentTimeMillis()))
 
