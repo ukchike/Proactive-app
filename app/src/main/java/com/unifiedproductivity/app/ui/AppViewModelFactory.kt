@@ -30,7 +30,8 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
         modelClass.isAssignableFrom(HomeViewModel::class.java) ->
             HomeViewModel(
                 container.remindersRepository,
-                container.calendarRepository
+                container.calendarRepository,
+                container.notesRepository
             ) as T
 
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->

@@ -3,6 +3,7 @@ package com.unifiedproductivity.app.data.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.unifiedproductivity.app.data.model.Eisenhower
 import com.unifiedproductivity.app.data.model.NoteType
 import com.unifiedproductivity.app.sync.ConflictResolver
 import kotlinx.serialization.Serializable
@@ -25,6 +26,8 @@ data class Note(
     val folderId: String? = null,
     val tags: List<String> = emptyList(),
     val type: NoteType = NoteType.FREE_FORM,
+    /** Urgent/important quadrant; urgent notes surface on the Home dashboard. */
+    val eisenhower: Eisenhower = Eisenhower.NONE,
     val isPinned: Boolean = false,
     val isArchived: Boolean = false,
     /** Optional bidirectional link to a calendar event (meeting notes). */

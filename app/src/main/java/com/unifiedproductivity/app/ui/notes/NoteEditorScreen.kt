@@ -1,13 +1,16 @@
 package com.unifiedproductivity.app.ui.notes
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
@@ -22,6 +25,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
@@ -50,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.unifiedproductivity.app.data.entity.Note
+import com.unifiedproductivity.app.data.model.Eisenhower
 
 /**
  * Rich-text note editor backed by compose-rich-editor. Formatting (bold/italic/
@@ -67,6 +73,7 @@ fun NoteEditorScreen(
     var title by remember { mutableStateOf("") }
     var tagsText by remember { mutableStateOf("") }
     var folderId by remember { mutableStateOf<String?>(null) }
+    var eisenhower by remember { mutableStateOf(Eisenhower.NONE) }
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     val richState = rememberRichTextState()
 
@@ -76,6 +83,7 @@ fun NoteEditorScreen(
         title = loaded.title
         tagsText = loaded.tags.joinToString(", ")
         folderId = loaded.folderId
+        eisenhower = loaded.eisenhower
         richState.setMarkdown(loaded.content)
     }
 
@@ -85,7 +93,13 @@ fun NoteEditorScreen(
         if (title.isBlank() && markdown.isBlank()) return // don't save empty notes
         val tags = tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         viewModel.saveNote(
-            base.copy(title = title, content = markdown, tags = tags, folderId = folderId)
+            base.copy(
+                title = title,
+                content = markdown,
+                tags = tags,
+                folderId = folderId,
+                eisenhower = eisenhower
+            )
         )
     }
 
@@ -120,40 +134,58 @@ fun NoteEditorScreen(
                 colors = transparentFieldColors(),
                 modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                value = tagsText,
-                onValueChange = { tagsText = it },
-                placeholder = { Text("tags, comma separated") },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (folders.isNotEmpty()) {
-                var folderMenuOpen by remember { mutableStateOf(false) }
-                Box {
-                    AssistChip(
-                        onClick = { folderMenuOpen = true },
-                        leadingIcon = { Icon(Icons.Filled.Folder, contentDescription = null) },
-                        label = {
-                            Text(folders.firstOrNull { it.id == folderId }?.name ?: "No folder")
-                        }
-                    )
-                    DropdownMenu(
-                        expanded = folderMenuOpen,
-                        onDismissRequest = { folderMenuOpen = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("No folder") },
-                            onClick = { folderId = null; folderMenuOpen = false }
+            // Compact metadata row: tags + folder side by side to leave room to write.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = tagsText,
+                    onValueChange = { tagsText = it },
+                    placeholder = { Text("tags") },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                if (folders.isNotEmpty()) {
+                    var folderMenuOpen by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.padding(start = 8.dp)) {
+                        AssistChip(
+                            onClick = { folderMenuOpen = true },
+                            leadingIcon = { Icon(Icons.Filled.Folder, contentDescription = null) },
+                            label = {
+                                Text(folders.firstOrNull { it.id == folderId }?.name ?: "Folder")
+                            }
                         )
-                        folders.forEach { folder ->
+                        DropdownMenu(
+                            expanded = folderMenuOpen,
+                            onDismissRequest = { folderMenuOpen = false }
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(folder.name) },
-                                onClick = { folderId = folder.id; folderMenuOpen = false }
+                                text = { Text("No folder") },
+                                onClick = { folderId = null; folderMenuOpen = false }
                             )
+                            folders.forEach { folder ->
+                                DropdownMenuItem(
+                                    text = { Text(folder.name) },
+                                    onClick = { folderId = folder.id; folderMenuOpen = false }
+                                )
+                            }
                         }
                     }
+                }
+            }
+
+            // Eisenhower priority — urgent notes surface on the Home dashboard.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                Eisenhower.entries.forEach { quadrant ->
+                    FilterChip(
+                        selected = eisenhower == quadrant,
+                        onClick = { eisenhower = quadrant },
+                        label = {
+                            Text(if (quadrant == Eisenhower.NONE) "No priority" else quadrant.short)
+                        }
+                    )
                 }
             }
 
@@ -167,10 +199,13 @@ fun NoteEditorScreen(
                 onNumbered = { richState.toggleOrderedList() }
             )
 
+            // The writing box gets all remaining height and never collapses.
             RichTextEditor(
                 state = richState,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .heightIn(min = 300.dp)
                     .padding(top = 8.dp)
             )
         }

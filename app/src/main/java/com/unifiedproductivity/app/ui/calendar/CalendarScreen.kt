@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -40,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,12 +64,16 @@ import com.unifiedproductivity.app.util.DateTimeUtils
 @Composable
 fun CalendarScreen(
     viewModel: CalendarViewModel,
-    onOpenNote: (String) -> Unit
+    onOpenNote: (String) -> Unit,
+    onBack: () -> Unit
 ) {
     val visibleMonth by viewModel.visibleMonth.collectAsStateWithLifecycle()
     val selectedDay by viewModel.selectedDay.collectAsStateWithLifecycle()
     val monthEvents by viewModel.monthEvents.collectAsStateWithLifecycle()
     val dayEvents by viewModel.selectedDayEvents.collectAsStateWithLifecycle()
+    // Collecting here keeps the calendars flow active so a default calendar id is
+    // always available when saving (this not being collected was the save bug).
+    val calendars by viewModel.calendars.collectAsStateWithLifecycle()
     var showAdd by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Event?>(null) }
 
@@ -73,6 +81,11 @@ fun CalendarScreen(
         topBar = {
             TopAppBar(
                 title = { Text(DateTimeUtils.formatMonthYear(visibleMonth), fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Home")
+                    }
+                },
                 actions = {
                     TextButton(onClick = { viewModel.goToToday() }) { Text("Today") }
                     IconButton(onClick = { viewModel.previousMonth() }) {
@@ -95,13 +108,28 @@ fun CalendarScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             WeekdayHeader()
+            // Swipe the grid horizontally to move between months (iOS gesture).
+            var dragTotal by remember { mutableFloatStateOf(0f) }
             MonthGrid(
                 visibleMonth = visibleMonth,
                 selectedDay = selectedDay,
                 eventDays = remember(monthEvents) {
                     monthEvents.map { DateTimeUtils.startOfDay(it.startDateTime) }.toSet()
                 },
-                onSelectDay = viewModel::selectDay
+                onSelectDay = viewModel::selectDay,
+                modifier = Modifier.pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            when {
+                                dragTotal < -100f -> viewModel.nextMonth()
+                                dragTotal > 100f -> viewModel.previousMonth()
+                            }
+                            dragTotal = 0f
+                        },
+                        onDragCancel = { dragTotal = 0f },
+                        onHorizontalDrag = { _, dragAmount -> dragTotal += dragAmount }
+                    )
+                }
             )
             Spacer(Modifier.height(8.dp))
             Text(
@@ -140,7 +168,7 @@ fun CalendarScreen(
         EventEditorDialog(
             initial = editing,
             day = selectedDay,
-            defaultCalendarId = viewModel.defaultCalendarId(),
+            defaultCalendarId = calendars.firstOrNull()?.id,
             onDismiss = { showAdd = false; editing = null },
             onSave = { event, attachNote ->
                 viewModel.saveEvent(event, attachNote)
@@ -171,7 +199,8 @@ private fun MonthGrid(
     visibleMonth: Long,
     selectedDay: Long,
     eventDays: Set<Long>,
-    onSelectDay: (Long) -> Unit
+    onSelectDay: (Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val firstWeekday = DateTimeUtils.firstWeekdayOfMonth(visibleMonth)
     val daysInMonth = DateTimeUtils.daysInMonth(visibleMonth)
@@ -179,7 +208,7 @@ private fun MonthGrid(
     val rows = (totalCells + 6) / 7
     val today = DateTimeUtils.startOfDay(System.currentTimeMillis())
 
-    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+    Column(modifier = modifier.padding(horizontal = 8.dp)) {
         for (row in 0 until rows) {
             Row(Modifier.fillMaxWidth()) {
                 for (col in 0 until 7) {

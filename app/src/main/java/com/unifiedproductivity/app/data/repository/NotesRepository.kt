@@ -18,6 +18,9 @@ class NotesRepository(
 
     fun searchNotes(query: String): Flow<List<Note>> = noteDao.search(query.trim())
 
+    /** Urgent-quadrant notes for the Home dashboard. */
+    fun observeUrgentNotes(): Flow<List<Note>> = noteDao.observeUrgent()
+
     fun observeNote(id: String): Flow<Note?> = noteDao.observeById(id)
 
     suspend fun getNote(id: String): Note? = noteDao.getById(id)

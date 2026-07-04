@@ -42,6 +42,14 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE linkedEventId = :eventId AND deletedAt IS NULL LIMIT 1")
     suspend fun findByLinkedEvent(eventId: String): Note?
 
+    /** Urgent-quadrant notes, surfaced on the Home dashboard. */
+    @Query(
+        "SELECT * FROM notes WHERE deletedAt IS NULL AND isArchived = 0 " +
+            "AND eisenhower IN ('URGENT_IMPORTANT', 'URGENT_NOT_IMPORTANT') " +
+            "ORDER BY modifiedAt DESC"
+    )
+    fun observeUrgent(): Flow<List<Note>>
+
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
     fun observeById(id: String): Flow<Note?>
 

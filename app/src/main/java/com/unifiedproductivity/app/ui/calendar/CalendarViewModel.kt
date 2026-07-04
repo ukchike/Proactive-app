@@ -63,8 +63,15 @@ class CalendarViewModel(
     fun selectDay(dayStart: Long) { _selectedDay.value = dayStart }
 
     fun saveEvent(event: Event, attachNote: Boolean = false) = viewModelScope.launch {
-        repository.saveEvent(event)
-        if (attachNote) linkService.createNoteForEvent(event)
+        // A blank calendarId means the screen had no calendar loaded yet (this was
+        // the "events not saving" bug) — resolve to a real calendar, never drop.
+        val resolved = if (event.calendarId.isBlank()) {
+            event.copy(calendarId = repository.ensureDefaultCalendar().id)
+        } else {
+            event
+        }
+        repository.saveEvent(resolved)
+        if (attachNote) linkService.createNoteForEvent(resolved)
     }
 
     /** Open the event's linked meeting note, creating it on first tap. */

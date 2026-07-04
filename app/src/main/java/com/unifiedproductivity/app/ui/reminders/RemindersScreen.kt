@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Event
@@ -50,7 +51,7 @@ import com.unifiedproductivity.app.util.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RemindersScreen(viewModel: RemindersViewModel) {
+fun RemindersScreen(viewModel: RemindersViewModel, onBack: () -> Unit) {
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val lists by viewModel.lists.collectAsStateWithLifecycle()
@@ -59,7 +60,18 @@ fun RemindersScreen(viewModel: RemindersViewModel) {
     var editing by remember { mutableStateOf<Reminder?>(null) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Reminders", fontWeight = FontWeight.Bold) }) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("Reminders", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Home")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAdd = true },

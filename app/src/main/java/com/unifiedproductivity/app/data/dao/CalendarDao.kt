@@ -20,6 +20,9 @@ interface CalendarDao {
     @Query("SELECT * FROM calendars WHERE name = :name AND deletedAt IS NULL LIMIT 1")
     suspend fun findByName(name: String): CalendarEntity?
 
+    @Query("SELECT * FROM calendars WHERE deletedAt IS NULL ORDER BY createdAt LIMIT 1")
+    suspend fun getFirst(): CalendarEntity?
+
     @Query("SELECT * FROM calendars")
     suspend fun getAllRaw(): List<CalendarEntity>
 

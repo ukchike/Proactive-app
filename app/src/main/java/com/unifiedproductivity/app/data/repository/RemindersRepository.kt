@@ -27,6 +27,9 @@ class RemindersRepository(
 
     fun observeFlagged(): Flow<List<Reminder>> = reminderDao.observeFlagged()
 
+    /** High-priority or flagged open tasks for the Home dashboard. */
+    fun observeHighPriority(): Flow<List<Reminder>> = reminderDao.observeHighPriority()
+
     fun search(query: String): Flow<List<Reminder>> = reminderDao.search(query.trim())
 
     fun observeReminder(id: String): Flow<Reminder?> = reminderDao.observeById(id)

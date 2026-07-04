@@ -31,7 +31,7 @@ import com.unifiedproductivity.app.data.entity.Subtask
         CalendarEntity::class,
         Event::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -55,6 +55,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v2 → v3: notes gained an Eisenhower priority quadrant. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE notes ADD COLUMN eisenhower TEXT NOT NULL DEFAULT 'NONE'")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -62,7 +69,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "unified_productivity.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

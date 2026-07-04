@@ -21,6 +21,11 @@ class CalendarRepository(
 
     suspend fun findCalendarByName(name: String): CalendarEntity? = calendarDao.findByName(name)
 
+    /** First calendar, created on demand — guarantees event saves always have a home. */
+    suspend fun ensureDefaultCalendar(): CalendarEntity =
+        calendarDao.getFirst() ?: CalendarEntity(name = "Personal", color = "#FF3B30")
+            .also { calendarDao.upsert(it) }
+
     // ----- Events -----
 
     fun observeEventsInRange(from: Long, to: Long): Flow<List<Event>> =
