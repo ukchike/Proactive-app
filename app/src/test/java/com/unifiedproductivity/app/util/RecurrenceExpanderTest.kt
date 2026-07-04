@@ -34,8 +34,9 @@ class RecurrenceExpanderTest {
 
     @Test
     fun `non-recurring event outside range returns nothing`() {
-        val e = event(start = 1000L)
-        val result = RecurrenceExpander.expand(e, rangeStart = 5000L, rangeEnd = 6000L)
+        // Starts well after the query window (event spans [10_000, 10_000+hour)).
+        val e = event(start = 10_000L)
+        val result = RecurrenceExpander.expand(e, rangeStart = 0L, rangeEnd = 5000L)
         assertTrue(result.isEmpty())
     }
 
