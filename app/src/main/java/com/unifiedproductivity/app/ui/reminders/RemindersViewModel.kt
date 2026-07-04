@@ -82,14 +82,13 @@ class RemindersViewModel(
 
     fun toggleComplete(reminder: Reminder) = viewModelScope.launch {
         // Completing (transitioning from incomplete) also archives any linked focus block.
-        if (!reminder.isCompleted) {
-            linkService.onReminderCompleted(reminder)
-            scheduler.cancel(reminder.id) // no alarm needed once done
-        } else {
-            // Re-opening a completed reminder — re-arm its alarm if still in the future.
-            scheduler.schedule(reminder.copy(isCompleted = false))
-        }
+        if (!reminder.isCompleted) linkService.onReminderCompleted(reminder)
         repository.toggleComplete(reminder)
+        // A *recurring* reminder isn't actually marked complete here — the repository
+        // rolls its due date forward instead — so re-fetch and reschedule rather than
+        // assuming completion cancels the alarm; ReminderScheduler already cancels for
+        // a genuinely completed or dateless reminder and (re)schedules otherwise.
+        repository.getReminder(reminder.id)?.let { scheduler.schedule(it) } ?: scheduler.cancel(reminder.id)
     }
 
     fun toggleFlag(reminder: Reminder) = viewModelScope.launch {

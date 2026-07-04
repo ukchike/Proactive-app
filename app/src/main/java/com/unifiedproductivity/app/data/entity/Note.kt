@@ -3,6 +3,7 @@ package com.unifiedproductivity.app.data.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.unifiedproductivity.app.data.model.ChecklistItem
 import com.unifiedproductivity.app.data.model.Eisenhower
 import com.unifiedproductivity.app.data.model.NoteType
 import com.unifiedproductivity.app.sync.ConflictResolver
@@ -32,6 +33,8 @@ data class Note(
     val isArchived: Boolean = false,
     /** Optional bidirectional link to a calendar event (meeting notes). */
     val linkedEventId: String? = null,
+    /** Checkable to-do lines shown below the note body (Apple Notes-style checklist). */
+    val checklistItems: List<ChecklistItem> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     override val modifiedAt: Long = System.currentTimeMillis(),
     override val deletedAt: Long? = null

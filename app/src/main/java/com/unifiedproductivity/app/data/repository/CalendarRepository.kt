@@ -4,7 +4,9 @@ import com.unifiedproductivity.app.data.dao.CalendarDao
 import com.unifiedproductivity.app.data.dao.EventDao
 import com.unifiedproductivity.app.data.entity.CalendarEntity
 import com.unifiedproductivity.app.data.entity.Event
+import com.unifiedproductivity.app.util.RecurrenceExpander
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** Data-access layer for the Calendar module. */
 class CalendarRepository(
@@ -28,8 +30,12 @@ class CalendarRepository(
 
     // ----- Events -----
 
+    /** Events in [from, to), with recurring events expanded into concrete occurrences. */
     fun observeEventsInRange(from: Long, to: Long): Flow<List<Event>> =
-        eventDao.observeInRange(from, to)
+        eventDao.observeInRange(from, to).map { candidates ->
+            candidates.flatMap { RecurrenceExpander.expand(it, from, to) }
+                .sortedBy { it.startDateTime }
+        }
 
     fun searchEvents(query: String): Flow<List<Event>> = eventDao.search(query.trim())
 
@@ -42,7 +48,9 @@ class CalendarRepository(
 
     suspend fun deleteEvent(id: String) = eventDao.softDelete(id)
 
+    /** Events that could still fire an alarm — used to re-arm alerts after a reboot. */
+    suspend fun getUpcomingEvents(): List<Event> = eventDao.getUpcoming(System.currentTimeMillis())
+
     /** True if the given window overlaps any existing event (overbooking check). */
-    fun observeOverlaps(from: Long, to: Long): Flow<List<Event>> =
-        eventDao.observeInRange(from, to)
+    fun observeOverlaps(from: Long, to: Long): Flow<List<Event>> = observeEventsInRange(from, to)
 }

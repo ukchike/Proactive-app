@@ -6,6 +6,7 @@ import com.unifiedproductivity.app.data.repository.CalendarRepository
 import com.unifiedproductivity.app.data.repository.NotesRepository
 import com.unifiedproductivity.app.data.repository.RemindersRepository
 import com.unifiedproductivity.app.integration.LinkService
+import com.unifiedproductivity.app.notifications.EventScheduler
 import com.unifiedproductivity.app.notifications.ReminderScheduler
 import com.unifiedproductivity.app.sync.DriveSyncManager
 import com.unifiedproductivity.app.ui.theme.ThemePreferences
@@ -30,6 +31,8 @@ class AppContainer(context: Context) {
     val linkService = LinkService(remindersRepository, calendarRepository, notesRepository)
 
     val reminderScheduler = ReminderScheduler(appContext)
+
+    val eventScheduler = EventScheduler(appContext)
 
     val driveSyncManager = DriveSyncManager(appContext, database)
 

@@ -207,6 +207,15 @@ private fun NoteCard(note: Note, onClick: () -> Unit, onPin: () -> Unit) {
                             modifier = Modifier.padding(end = 8.dp)
                         )
                     }
+                    if (note.checklistItems.isNotEmpty()) {
+                        val checkedCount = note.checklistItems.count { it.isChecked }
+                        Text(
+                            "$checkedCount/${note.checklistItems.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
                     if (note.tags.isNotEmpty()) {
                         Text(
                             note.tags.joinToString(" ") { "#$it" },

@@ -6,6 +6,7 @@ import com.unifiedproductivity.app.data.entity.CalendarEntity
 import com.unifiedproductivity.app.data.entity.Event
 import com.unifiedproductivity.app.data.repository.CalendarRepository
 import com.unifiedproductivity.app.integration.LinkService
+import com.unifiedproductivity.app.notifications.EventScheduler
 import com.unifiedproductivity.app.util.DateTimeUtils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
     private val repository: CalendarRepository,
-    private val linkService: LinkService
+    private val linkService: LinkService,
+    private val scheduler: EventScheduler
 ) : ViewModel() {
 
     /** First-of-month timestamp for the month currently displayed. */
@@ -71,6 +73,7 @@ class CalendarViewModel(
             event
         }
         repository.saveEvent(resolved)
+        scheduler.schedule(resolved)
         if (attachNote) linkService.createNoteForEvent(resolved)
     }
 
@@ -80,7 +83,10 @@ class CalendarViewModel(
         onReady(note.id)
     }
 
-    fun deleteEvent(id: String) = viewModelScope.launch { repository.deleteEvent(id) }
+    fun deleteEvent(id: String) = viewModelScope.launch {
+        scheduler.cancel(id)
+        repository.deleteEvent(id)
+    }
 
     fun defaultCalendarId(): String? = calendars.value.firstOrNull()?.id
 
