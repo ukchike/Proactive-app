@@ -42,7 +42,7 @@ import com.unifiedproductivity.app.util.DateTimeUtils
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onOpenNotes: () -> Unit,
+    onNewNote: () -> Unit,
     onOpenReminders: () -> Unit,
     onOpenCalendar: () -> Unit
 ) {
@@ -67,7 +67,7 @@ fun HomeScreen(
 
         item {
             QuickActions(
-                onNote = onOpenNotes,
+                onNote = onNewNote,
                 onReminder = onOpenReminders,
                 onEvent = onOpenCalendar
             )
@@ -76,7 +76,7 @@ fun HomeScreen(
         if (state.overdueReminders.isNotEmpty()) {
             item { SectionHeader("Overdue", PriorityHigh, Icons.Filled.Warning) }
             items(state.overdueReminders, key = { "od-${it.id}" }) { reminder ->
-                ReminderRow(reminder, overdue = true)
+                ReminderRow(reminder, overdue = true, onClick = onOpenReminders)
             }
         }
 
@@ -84,7 +84,9 @@ fun HomeScreen(
         if (state.todayEvents.isEmpty()) {
             item { EmptyHint("No events today") }
         } else {
-            items(state.todayEvents, key = { "ev-${it.id}" }) { event -> EventRow(event) }
+            items(state.todayEvents, key = { "ev-${it.id}" }) { event ->
+                EventRow(event, onClick = onOpenCalendar)
+            }
         }
 
         item { SectionHeader("Due today", MaterialTheme.colorScheme.tertiary, Icons.Filled.CheckCircle) }
@@ -92,7 +94,7 @@ fun HomeScreen(
             item { EmptyHint("Nothing due today — nice.") }
         } else {
             items(state.todayReminders, key = { "td-${it.id}" }) { reminder ->
-                ReminderRow(reminder, overdue = false)
+                ReminderRow(reminder, overdue = false, onClick = onOpenReminders)
             }
         }
 
@@ -144,8 +146,11 @@ private fun SectionHeader(title: String, accent: Color, icon: androidx.compose.u
 }
 
 @Composable
-private fun EventRow(event: Event) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+private fun EventRow(event: Event, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -173,8 +178,8 @@ private fun EventRow(event: Event) {
 }
 
 @Composable
-private fun ReminderRow(reminder: Reminder, overdue: Boolean) {
-    Card {
+private fun ReminderRow(reminder: Reminder, overdue: Boolean, onClick: () -> Unit) {
+    Card(onClick = onClick) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

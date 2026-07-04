@@ -3,7 +3,6 @@ package com.unifiedproductivity.app.ui.reminders
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,15 +10,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -27,11 +24,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.unifiedproductivity.app.data.entity.Reminder
 import com.unifiedproductivity.app.data.model.Priority
 import com.unifiedproductivity.app.data.model.SmartList
+import com.unifiedproductivity.app.ui.common.SwipeToDelete
 import com.unifiedproductivity.app.ui.theme.PriorityHigh
 import com.unifiedproductivity.app.ui.theme.PriorityLow
 import com.unifiedproductivity.app.ui.theme.PriorityMedium
@@ -61,6 +56,7 @@ fun RemindersScreen(viewModel: RemindersViewModel) {
     val lists by viewModel.lists.collectAsStateWithLifecycle()
     val counts by viewModel.smartListCounts.collectAsStateWithLifecycle()
     var showAdd by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Reminder?>(null) }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Reminders", fontWeight = FontWeight.Bold) }) },
@@ -106,7 +102,7 @@ fun RemindersScreen(viewModel: RemindersViewModel) {
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        "Nothing here yet",
+                        "Nothing here yet — tap + to add",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
@@ -116,26 +112,30 @@ fun RemindersScreen(viewModel: RemindersViewModel) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(reminders, key = { it.id }) { reminder ->
-                        ReminderItem(
-                            reminder = reminder,
-                            onToggle = { viewModel.toggleComplete(reminder) },
-                            onFlag = { viewModel.toggleFlag(reminder) },
-                            onDelete = { viewModel.delete(reminder.id) }
-                        )
+                        SwipeToDelete(onDelete = { viewModel.delete(reminder.id) }) {
+                            ReminderItem(
+                                reminder = reminder,
+                                onClick = { editing = reminder },
+                                onToggle = { viewModel.toggleComplete(reminder) },
+                                onFlag = { viewModel.toggleFlag(reminder) }
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    if (showAdd) {
-        AddReminderDialog(
-            onDismiss = { showAdd = false },
+    if (showAdd || editing != null) {
+        ReminderEditorDialog(
+            initial = editing,
+            defaultListId = viewModel.defaultListId(),
+            onDismiss = { showAdd = false; editing = null },
             onSave = { reminder, blockTime ->
                 viewModel.save(reminder, blockTime)
                 showAdd = false
-            },
-            defaultListId = viewModel.defaultListId()
+                editing = null
+            }
         )
     }
 }
@@ -143,11 +143,11 @@ fun RemindersScreen(viewModel: RemindersViewModel) {
 @Composable
 private fun ReminderItem(
     reminder: Reminder,
+    onClick: () -> Unit,
     onToggle: () -> Unit,
-    onFlag: () -> Unit,
-    onDelete: () -> Unit
+    onFlag: () -> Unit
 ) {
-    Card {
+    Card(onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -177,13 +177,32 @@ private fun ReminderItem(
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                     )
                 }
-                if (reminder.blockedBy.isNotEmpty()) {
-                    Text(
-                        "Blocked",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PriorityMedium
-                    )
+                if (!reminder.location.isNullOrBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Place,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            reminder.location,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
                 }
+                if (reminder.blockedBy.isNotEmpty()) {
+                    Text("Blocked", style = MaterialTheme.typography.labelSmall, color = PriorityMedium)
+                }
+            }
+            if (reminder.linkedEventId != null) {
+                Icon(
+                    Icons.Filled.Event,
+                    contentDescription = "Time blocked on calendar",
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(18.dp)
+                )
             }
             IconButton(onClick = onFlag) {
                 Icon(
@@ -192,10 +211,6 @@ private fun ReminderItem(
                     tint = if (reminder.isFlagged) PriorityMedium
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                 )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
             }
         }
     }
@@ -207,87 +222,4 @@ private fun priorityColor(priority: Priority): Color = when (priority) {
     Priority.MEDIUM -> PriorityMedium
     Priority.LOW -> PriorityLow
     Priority.NONE -> MaterialTheme.colorScheme.tertiary
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddReminderDialog(
-    onDismiss: () -> Unit,
-    onSave: (Reminder, Boolean) -> Unit,
-    defaultListId: String?
-) {
-    var title by remember { mutableStateOf("") }
-    var priority by remember { mutableStateOf(Priority.NONE) }
-    var due by remember { mutableStateOf<Long?>(null) }
-    var blockTime by remember { mutableStateOf(false) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New Reminder") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    placeholder = { Text("What needs doing?") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text("Priority", style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Priority.entries.forEach { p ->
-                        FilterChip(
-                            selected = priority == p,
-                            onClick = { priority = p },
-                            label = { Text(p.label) }
-                        )
-                    }
-                }
-
-                Text("Due", style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DueChip("None", due == null) { due = null }
-                    DueChip("Today", due == DateTimeUtils.endOfToday()) { due = DateTimeUtils.endOfToday() }
-                    DueChip("Tomorrow", due == DateTimeUtils.endOfToday() + DateTimeUtils.DAY_MS) {
-                        due = DateTimeUtils.endOfToday() + DateTimeUtils.DAY_MS
-                    }
-                }
-
-                if (due != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        FilterChip(
-                            selected = blockTime,
-                            onClick = { blockTime = !blockTime },
-                            label = { Text("Block time on Calendar") }
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (title.isNotBlank() && defaultListId != null) {
-                        onSave(
-                            Reminder(
-                                title = title.trim(),
-                                listId = defaultListId,
-                                priority = priority,
-                                dueDate = due,
-                                hasTime = false
-                            ),
-                            blockTime
-                        )
-                    }
-                }
-            ) { Text("Add") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
-}
-
-@Composable
-private fun DueChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    FilterChip(selected = selected, onClick = onClick, label = { Text(label) })
 }

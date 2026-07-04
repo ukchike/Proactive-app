@@ -1,6 +1,7 @@
 package com.unifiedproductivity.app.ui.notes
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,11 +12,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatUnderlined
 import androidx.compose.material.icons.filled.Title
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -41,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.unifiedproductivity.app.data.entity.Note
@@ -60,6 +66,8 @@ fun NoteEditorScreen(
     var note by remember { mutableStateOf<Note?>(null) }
     var title by remember { mutableStateOf("") }
     var tagsText by remember { mutableStateOf("") }
+    var folderId by remember { mutableStateOf<String?>(null) }
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
     val richState = rememberRichTextState()
 
     LaunchedEffect(noteId) {
@@ -67,6 +75,7 @@ fun NoteEditorScreen(
         note = loaded
         title = loaded.title
         tagsText = loaded.tags.joinToString(", ")
+        folderId = loaded.folderId
         richState.setMarkdown(loaded.content)
     }
 
@@ -75,7 +84,9 @@ fun NoteEditorScreen(
         val markdown = richState.toMarkdown()
         if (title.isBlank() && markdown.isBlank()) return // don't save empty notes
         val tags = tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-        viewModel.saveNote(base.copy(title = title, content = markdown, tags = tags))
+        viewModel.saveNote(
+            base.copy(title = title, content = markdown, tags = tags, folderId = folderId)
+        )
     }
 
     Scaffold(
@@ -117,6 +128,34 @@ fun NoteEditorScreen(
                 textStyle = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (folders.isNotEmpty()) {
+                var folderMenuOpen by remember { mutableStateOf(false) }
+                Box {
+                    AssistChip(
+                        onClick = { folderMenuOpen = true },
+                        leadingIcon = { Icon(Icons.Filled.Folder, contentDescription = null) },
+                        label = {
+                            Text(folders.firstOrNull { it.id == folderId }?.name ?: "No folder")
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = folderMenuOpen,
+                        onDismissRequest = { folderMenuOpen = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("No folder") },
+                            onClick = { folderId = null; folderMenuOpen = false }
+                        )
+                        folders.forEach { folder ->
+                            DropdownMenuItem(
+                                text = { Text(folder.name) },
+                                onClick = { folderId = folder.id; folderMenuOpen = false }
+                            )
+                        }
+                    }
+                }
+            }
 
             FormattingToolbar(
                 onBold = { richState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) },

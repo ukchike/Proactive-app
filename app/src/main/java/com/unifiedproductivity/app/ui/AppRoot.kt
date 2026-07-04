@@ -88,7 +88,7 @@ fun AppRoot(container: AppContainer) {
                 val vm: HomeViewModel = viewModel(factory = factory)
                 HomeScreen(
                     viewModel = vm,
-                    onOpenNotes = { navController.navigate(TopLevel.Notes.route) },
+                    onNewNote = { navController.navigate("note/new") },
                     onOpenReminders = { navController.navigate(TopLevel.Reminders.route) },
                     onOpenCalendar = { navController.navigate(TopLevel.Calendar.route) }
                 )
@@ -115,7 +115,10 @@ fun AppRoot(container: AppContainer) {
             }
             composable(TopLevel.Calendar.route) {
                 val vm: CalendarViewModel = viewModel(factory = factory)
-                CalendarScreen(viewModel = vm)
+                CalendarScreen(
+                    viewModel = vm,
+                    onOpenNote = { noteId -> navController.navigate("note/$noteId") }
+                )
             }
             composable(TopLevel.Settings.route) {
                 val vm: SettingsViewModel = viewModel(factory = factory)

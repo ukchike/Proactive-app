@@ -7,7 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.unifiedproductivity.app.ui.AppRoot
+import com.unifiedproductivity.app.ui.theme.ThemeMode
 import com.unifiedproductivity.app.ui.theme.UnifiedProductivityTheme
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +25,13 @@ class MainActivity : ComponentActivity() {
         maybeRequestNotificationPermission()
         val container = (application as UnifiedProductivityApp).container
         setContent {
-            UnifiedProductivityTheme {
+            val mode by container.themePreferences.mode.collectAsStateWithLifecycle()
+            val darkTheme = when (mode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            UnifiedProductivityTheme(darkTheme = darkTheme) {
                 AppRoot(container)
             }
         }

@@ -22,6 +22,8 @@ class NotesRepository(
 
     suspend fun getNote(id: String): Note? = noteDao.getById(id)
 
+    suspend fun findByLinkedEvent(eventId: String): Note? = noteDao.findByLinkedEvent(eventId)
+
     suspend fun saveNote(note: Note) {
         noteDao.upsert(note.copy(modifiedAt = System.currentTimeMillis()))
     }
