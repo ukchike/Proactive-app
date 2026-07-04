@@ -31,7 +31,7 @@ import com.unifiedproductivity.app.data.entity.Subtask
         CalendarEntity::class,
         Event::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -62,6 +62,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 → v4: notes gained a checklist (checkable to-do lines). */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE notes ADD COLUMN checklistItems TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -69,7 +76,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "unified_productivity.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

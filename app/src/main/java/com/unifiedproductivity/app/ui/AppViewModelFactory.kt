@@ -25,7 +25,11 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             ) as T
 
         modelClass.isAssignableFrom(CalendarViewModel::class.java) ->
-            CalendarViewModel(container.calendarRepository, container.linkService) as T
+            CalendarViewModel(
+                container.calendarRepository,
+                container.linkService,
+                container.eventScheduler
+            ) as T
 
         modelClass.isAssignableFrom(HomeViewModel::class.java) ->
             HomeViewModel(

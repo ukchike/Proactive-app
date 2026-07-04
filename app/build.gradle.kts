@@ -23,6 +23,20 @@ android {
         }
     }
 
+    signingConfigs {
+        // A shared, committed debug keystore. Without this, every CI run generates
+        // its own random debug key, so each build has a different signature and
+        // Android refuses to install it as an update over the previous build
+        // (forcing an uninstall every time). Using the same key for every debug
+        // build lets installs update in place.
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
