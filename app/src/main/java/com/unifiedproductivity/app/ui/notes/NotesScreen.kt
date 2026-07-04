@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.PushPin
@@ -39,16 +40,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.unifiedproductivity.app.data.entity.Note
+import com.unifiedproductivity.app.data.model.Eisenhower
 import com.unifiedproductivity.app.ui.common.SwipeToDelete
+import com.unifiedproductivity.app.ui.theme.AccentGray
+import com.unifiedproductivity.app.ui.theme.NotesAccent
+import com.unifiedproductivity.app.ui.theme.PriorityHigh
+import com.unifiedproductivity.app.ui.theme.PriorityLow
+import com.unifiedproductivity.app.ui.theme.PriorityMedium
 import com.unifiedproductivity.app.util.DateTimeUtils
+
+/** iOS system colors per Eisenhower quadrant. */
+fun eisenhowerColor(quadrant: Eisenhower): Color = when (quadrant) {
+    Eisenhower.URGENT_IMPORTANT -> PriorityHigh
+    Eisenhower.IMPORTANT_NOT_URGENT -> PriorityMedium
+    Eisenhower.URGENT_NOT_IMPORTANT -> PriorityLow
+    else -> AccentGray
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
     viewModel: NotesViewModel,
-    onOpenNote: (String) -> Unit
+    onOpenNote: (String) -> Unit,
+    onBack: () -> Unit
 ) {
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val folders by viewModel.folders.collectAsStateWithLifecycle()
@@ -59,7 +76,12 @@ fun NotesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Notes", fontWeight = FontWeight.Bold) },
+                title = { Text("Notes", fontWeight = FontWeight.Bold, color = NotesAccent) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Home")
+                    }
+                },
                 actions = {
                     IconButton(onClick = { showFolderDialog = true }) {
                         Icon(Icons.Filled.CreateNewFolder, contentDescription = "New folder")
@@ -68,7 +90,10 @@ fun NotesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onOpenNote("new") }) {
+            FloatingActionButton(
+                onClick = { onOpenNote("new") },
+                containerColor = NotesAccent
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "New note")
             }
         }
@@ -173,12 +198,22 @@ private fun NoteCard(note: Note, onClick: () -> Unit, onPin: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (note.tags.isNotEmpty()) {
-                    Text(
-                        note.tags.joinToString(" ") { "#$it" },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (note.eisenhower != Eisenhower.NONE) {
+                        Text(
+                            note.eisenhower.short,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = eisenhowerColor(note.eisenhower),
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    if (note.tags.isNotEmpty()) {
+                        Text(
+                            note.tags.joinToString(" ") { "#$it" },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = NotesAccent
+                        )
+                    }
                 }
             }
             IconButton(onClick = onPin) {

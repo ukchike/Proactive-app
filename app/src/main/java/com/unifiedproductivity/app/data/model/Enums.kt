@@ -11,6 +11,16 @@ enum class Priority(val sortRank: Int, val label: String) {
     NONE(3, "None")
 }
 
+/** Eisenhower-matrix priority for notes (urgent/important quadrants). */
+@Serializable
+enum class Eisenhower(val label: String, val short: String) {
+    NONE("No priority", ""),
+    URGENT_IMPORTANT("Urgent & Important", "Do now"),
+    IMPORTANT_NOT_URGENT("Important, Not Urgent", "Schedule"),
+    URGENT_NOT_IMPORTANT("Urgent, Not Important", "Delegate"),
+    NOT_URGENT_NOT_IMPORTANT("Not Urgent or Important", "Later")
+}
+
 /** Specialized note templates (see spec: Notes module, "Note types"). */
 @Serializable
 enum class NoteType(val label: String) {

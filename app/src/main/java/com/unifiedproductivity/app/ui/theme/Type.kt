@@ -6,31 +6,35 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/** Typography per the spec: Roboto scale, bold module titles, readable body. */
+/** iOS-style type scale: large bold titles, 17sp body, 15sp secondary. */
 val AppTypography = Typography(
+    // iOS "Large Title"
     headlineMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,
-        fontSize = 28.sp
+        fontSize = 34.sp
     ),
+    // Section titles / nav-bar titles
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 18.sp
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp
     ),
+    // iOS body
     bodyLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
+        fontSize = 17.sp
     ),
+    // iOS subheadline/footnote
     bodyMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp
+        fontSize = 15.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Normal,
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.sp
     )
 )

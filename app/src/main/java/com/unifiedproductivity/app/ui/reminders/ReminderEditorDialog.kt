@@ -10,7 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -30,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.unifiedproductivity.app.data.entity.Reminder
 import com.unifiedproductivity.app.data.model.Priority
+import com.unifiedproductivity.app.ui.common.LocationField
 import com.unifiedproductivity.app.ui.common.pickDate
 import com.unifiedproductivity.app.ui.common.pickTime
 import com.unifiedproductivity.app.util.DateTimeUtils
@@ -77,12 +77,9 @@ fun ReminderEditorDialog(
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
+                LocationField(
                     value = location,
                     onValueChange = { location = it },
-                    placeholder = { Text("Location / address (optional)") },
-                    leadingIcon = { Icon(Icons.Filled.Place, contentDescription = null) },
-                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 

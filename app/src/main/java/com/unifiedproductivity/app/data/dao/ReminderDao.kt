@@ -37,6 +37,14 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE deletedAt IS NULL AND isFlagged = 1 AND isCompleted = 0 ORDER BY dueDate")
     fun observeFlagged(): Flow<List<Reminder>>
 
+    /** High-priority or flagged open tasks, surfaced on the Home dashboard. */
+    @Query(
+        "SELECT * FROM reminders WHERE deletedAt IS NULL AND isCompleted = 0 " +
+            "AND (priority = 'HIGH' OR isFlagged = 1) " +
+            "ORDER BY dueDate IS NULL, dueDate"
+    )
+    fun observeHighPriority(): Flow<List<Reminder>>
+
     @Query(
         "SELECT * FROM reminders WHERE deletedAt IS NULL " +
             "AND (title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%') " +

@@ -10,8 +10,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
+// iOS blue is the system-wide interactive color; red and blue back the Calendar
+// and Reminders accents. Notes screens apply their gold accent explicitly.
 private val LightColors = lightColorScheme(
-    primary = NotesAccent,
+    primary = RemindersAccent,
     secondary = CalendarAccent,
     tertiary = RemindersAccent,
     background = LightBackground,
@@ -21,7 +23,7 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = NotesAccent,
+    primary = RemindersAccent,
     secondary = CalendarAccent,
     tertiary = RemindersAccent,
     background = DarkBackground,
