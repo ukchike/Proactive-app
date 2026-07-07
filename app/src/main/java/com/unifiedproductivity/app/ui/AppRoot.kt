@@ -11,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.unifiedproductivity.app.di.AppContainer
+import com.unifiedproductivity.app.ui.budget.BudgetScreen
+import com.unifiedproductivity.app.ui.budget.BudgetViewModel
 import com.unifiedproductivity.app.ui.calendar.CalendarScreen
 import com.unifiedproductivity.app.ui.calendar.CalendarViewModel
 import com.unifiedproductivity.app.ui.home.HomeScreen
@@ -45,6 +47,7 @@ fun AppRoot(container: AppContainer) {
                 onOpenReminders = { navController.navigate("reminders") },
                 onOpenCalendar = { navController.navigate("calendar") },
                 onOpenSettings = { navController.navigate("settings") },
+                onOpenBudget = { navController.navigate("budget") },
                 onOpenNote = { noteId -> navController.navigate("note/$noteId") }
             )
         }
@@ -77,12 +80,20 @@ fun AppRoot(container: AppContainer) {
             CalendarScreen(
                 viewModel = vm,
                 onOpenNote = { noteId -> navController.navigate("note/$noteId") },
+                onOpenBudget = { navController.navigate("budget") },
                 onBack = { navController.popBackStack("home", inclusive = false) }
             )
         }
             composable("settings") {
                 val vm: SettingsViewModel = viewModel(factory = factory)
                 SettingsScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack("home", inclusive = false) }
+                )
+            }
+            composable("budget") {
+                val vm: BudgetViewModel = viewModel(factory = factory)
+                BudgetScreen(
                     viewModel = vm,
                     onBack = { navController.popBackStack("home", inclusive = false) }
                 )

@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Schedule
@@ -29,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.unifiedproductivity.app.data.entity.Reminder
 import com.unifiedproductivity.app.data.model.Priority
@@ -60,6 +63,7 @@ fun ReminderEditorDialog(
     var due by remember { mutableStateOf(initial?.dueDate) }
     var hasTime by remember { mutableStateOf(initial?.hasTime ?: false) }
     var location by remember { mutableStateOf(initial?.location ?: "") }
+    var amountText by remember { mutableStateOf(initial?.amount?.toString() ?: "") }
     var blockTime by remember { mutableStateOf(false) }
     var recurrence by remember { mutableStateOf(initial?.recurrence ?: RecurrenceFrequency.NONE) }
     var recurrenceInterval by remember { mutableIntStateOf(initial?.recurrenceInterval ?: 1) }
@@ -92,6 +96,15 @@ fun ReminderEditorDialog(
                 LocationField(
                     value = location,
                     onValueChange = { location = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { input -> if (input.all { it.isDigit() }) amountText = input },
+                    placeholder = { Text("Cost (optional)") },
+                    leadingIcon = { Icon(Icons.Filled.AttachMoney, contentDescription = null) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -185,6 +198,7 @@ fun ReminderEditorDialog(
                             dueDate = due,
                             hasTime = hasTime,
                             location = location.trim().ifBlank { null },
+                            amount = amountText.toLongOrNull(),
                             recurrence = if (due != null) recurrence else RecurrenceFrequency.NONE,
                             recurrenceInterval = recurrenceInterval,
                             notifyMinutesBefore = leadMinutes?.let { listOf(it.toString()) } ?: emptyList()

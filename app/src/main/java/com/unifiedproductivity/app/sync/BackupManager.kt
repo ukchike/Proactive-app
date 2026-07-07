@@ -1,6 +1,8 @@
 package com.unifiedproductivity.app.sync
 
 import com.unifiedproductivity.app.data.AppDatabase
+import com.unifiedproductivity.app.data.entity.BudgetItem
+import com.unifiedproductivity.app.data.entity.BudgetList
 import com.unifiedproductivity.app.data.entity.CalendarEntity
 import com.unifiedproductivity.app.data.entity.Event
 import com.unifiedproductivity.app.data.entity.Folder
@@ -38,10 +40,17 @@ class BackupManager(private val db: AppDatabase) {
         val events: List<Event> = emptyList()
     )
 
+    @Serializable
+    data class BudgetSnapshot(
+        val lists: List<BudgetList> = emptyList(),
+        val items: List<BudgetItem> = emptyList()
+    )
+
     companion object {
         const val NOTES_FILE = "notes.json"
         const val REMINDERS_FILE = "reminders.json"
         const val CALENDAR_FILE = "calendar.json"
+        const val BUDGET_FILE = "budget.json"
     }
 
     /** Snapshot the whole local database as filename -> JSON (used for backups). */
@@ -58,6 +67,9 @@ class BackupManager(private val db: AppDatabase) {
         ),
         CALENDAR_FILE to json.encodeToString(
             CalendarSnapshot(db.calendarDao().getAllRaw(), db.eventDao().getAllRaw())
+        ),
+        BUDGET_FILE to json.encodeToString(
+            BudgetSnapshot(db.budgetListDao().getAllRaw(), db.budgetItemDao().getAllRaw())
         )
     )
 
@@ -99,10 +111,20 @@ class BackupManager(private val db: AppDatabase) {
         mergedCalendars.forEach { db.calendarDao().upsert(it) }
         mergedEvents.forEach { db.eventDao().upsert(it) }
 
+        // ----- Budget lists + items -----
+        val remoteBudget = remoteFiles[BUDGET_FILE]?.let { json.decodeFromString<BudgetSnapshot>(it) }
+        val mergedBudgetLists = unionById(
+            db.budgetListDao().getAllRaw(), remoteBudget?.lists.orEmpty(), { it.id }, { it.deletedAt }
+        )
+        val mergedBudgetItems = ConflictResolver.merge(db.budgetItemDao().getAllRaw(), remoteBudget?.items.orEmpty())
+        mergedBudgetLists.forEach { db.budgetListDao().upsert(it) }
+        mergedBudgetItems.forEach { db.budgetItemDao().upsert(it) }
+
         return mapOf(
             NOTES_FILE to json.encodeToString(NotesSnapshot(mergedNotes, mergedFolders)),
             REMINDERS_FILE to json.encodeToString(RemindersSnapshot(mergedReminders, mergedSubtasks, mergedLists)),
-            CALENDAR_FILE to json.encodeToString(CalendarSnapshot(mergedCalendars, mergedEvents))
+            CALENDAR_FILE to json.encodeToString(CalendarSnapshot(mergedCalendars, mergedEvents)),
+            BUDGET_FILE to json.encodeToString(BudgetSnapshot(mergedBudgetLists, mergedBudgetItems))
         )
     }
 
@@ -121,6 +143,10 @@ class BackupManager(private val db: AppDatabase) {
         remoteFiles[CALENDAR_FILE]?.let { json.decodeFromString<CalendarSnapshot>(it) }?.let { snap ->
             snap.calendars.forEach { db.calendarDao().upsert(it) }
             snap.events.forEach { db.eventDao().upsert(it) }
+        }
+        remoteFiles[BUDGET_FILE]?.let { json.decodeFromString<BudgetSnapshot>(it) }?.let { snap ->
+            snap.lists.forEach { db.budgetListDao().upsert(it) }
+            snap.items.forEach { db.budgetItemDao().upsert(it) }
         }
     }
 

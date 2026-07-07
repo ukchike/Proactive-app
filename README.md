@@ -63,11 +63,13 @@ app/src/main/java/com/unifiedproductivity/app/
 ├── di/AppContainer.kt            # Manual dependency graph (DB → repositories → link service)
 ├── data/
 │   ├── entity/                   # Room entities: Note, Folder, Reminder, Subtask,
-│   │                             #   ReminderList, CalendarEntity, Event
+│   │                             #   ReminderList, CalendarEntity, Event, BudgetList,
+│   │                             #   BudgetItem
 │   ├── dao/                      # Room DAOs (Flow-based queries incl. smart lists)
-│   ├── repository/               # NotesRepository, RemindersRepository, CalendarRepository
+│   ├── repository/               # NotesRepository, RemindersRepository, CalendarRepository,
+│   │                             #   BudgetRepository
 │   ├── model/                    # Priority, NoteType, Eisenhower, ChecklistItem,
-│   │                             #   RecurrenceFrequency, SmartList, ...
+│   │                             #   RecurrenceFrequency, BudgetItemType, SmartList, ...
 │   ├── Converters.kt             # Room type converters (List<String>, ChecklistItem JSON)
 │   └── AppDatabase.kt            # RoomDatabase definition + migrations
 ├── integration/LinkService.kt    # Cross-module glue (reminder↔calendar, event→note)
@@ -82,16 +84,19 @@ app/src/main/java/com/unifiedproductivity/app/
 │   └── SyncWorker.kt             # WorkManager periodic sync (runs when signed in)
 ├── util/
 │   ├── DateTimeUtils.kt          # Date/recurrence helpers (unit-tested)
-│   └── RecurrenceExpander.kt     # In-memory recurrence expansion (unit-tested)
+│   ├── RecurrenceExpander.kt     # In-memory recurrence expansion (unit-tested)
+│   ├── BudgetCalculations.kt     # Outstanding totals + list progress (unit-tested)
+│   └── CurrencyFormatter.kt      # ₦ formatting
 └── ui/
     ├── AppRoot.kt                # NavHost; Home is a hub, each module opens full screen
     ├── theme/                    # Color, Type, Theme, ThemePreferences (dark mode)
     ├── common/                   # Pickers (themed date/time), LocationField (geocoder),
     │                             #   RecurrencePicker, LeadTimePicker, SwipeToDelete
-    ├── home/                     # Priority + due items, module tiles
+    ├── home/                     # Priority + due items, module tiles, finances summary
     ├── notes/                    # Notes list + rich-text editor with checklist
     ├── reminders/                # Reminders list, smart-list chips, editor dialog
-    ├── calendar/                 # Month grid + day agenda, editor dialog
+    ├── calendar/                 # Month grid + day agenda (events + budget due-dates), editor dialog
+    ├── budget/                   # Lists of income/expense items, progress bars, totals
     └── settings/                 # Google Drive sign-in, sync / backup / restore, theme switch
 ```
 
@@ -113,6 +118,7 @@ app/src/main/java/com/unifiedproductivity/app/
 - Due dates with a real date + time picker, location (address search via the
   device's geocoder), repeat (Daily/Weekly/Monthly/Yearly + interval), and a
   configurable "remind me" lead time
+- Optional cost (e.g. "Pay for data — ₦5,000") shown as a badge on the row
 - "Block this time on Calendar" when adding a due reminder → creates a linked Focus-Time event
 
 **Calendar**
@@ -123,10 +129,21 @@ app/src/main/java/com/unifiedproductivity/app/
   on the grid — editing or deleting any occurrence affects the whole series
 - Multiple color-coded calendars (visibility-aware queries)
 - "Attach note" when creating an event → creates a linked meeting note
+- Budget items with a due date show on the day agenda and month-grid dot
+  indicator alongside events (green, income/expense-colored)
+
+**Budget**
+- Named lists (e.g. "Groceries", "Monthly Home Expenses") holding income/expense
+  line items — amount, paid/received checkbox, optional due date
+- Per-list progress bars (item count and amount collected/paid)
+- Outstanding Income vs Outstanding Expenses totals, in ₦ (Naira)
+- Items with due dates surface on the Calendar; totals surface on Home
 
 **Home dashboard**
-- Merges today's events, tasks due today, and overdue tasks into one view
-- Quick actions to jump into each module
+- App-like tiles for every module (Notes, Reminders, Calendar, Budget, Settings)
+- Priority section: urgent notes + high-priority/flagged reminders
+- Overdue and Today sections (events, due reminders, due budget items)
+- Finances summary (Outstanding Income / Outstanding Expenses), tapping through to Budget
 
 **Cross-module integration** (`LinkService`)
 - Reminder → Calendar focus-time block (color-coded by priority; archived when the reminder completes)
@@ -163,14 +180,14 @@ app/src/main/java/com/unifiedproductivity/app/
 **Google Drive sync** (Settings tab)
 - Google Sign-In with the `drive.appdata` scope (private app folder)
 - Sync now / Back up now / Restore, plus a periodic WorkManager sync when signed in
-- JSON snapshots (`notes.json`, `reminders.json`, `calendar.json`) merged last-write-wins
+- JSON snapshots (`notes.json`, `reminders.json`, `calendar.json`, `budget.json`) merged last-write-wins
 
 ## Implementation status
 
 | Area | State |
 | --- | --- |
-| Local data layer (Room) for all 3 modules | ✅ Complete |
-| Notes / Reminders / Calendar UI | ✅ Functional |
+| Local data layer (Room) for all 4 modules | ✅ Complete |
+| Notes / Reminders / Calendar / Budget UI | ✅ Functional |
 | Rich-text note editor (Markdown-backed) + checklists | ✅ Functional |
 | Home unified dashboard | ✅ Functional |
 | Cross-module linking | ✅ Functional |
@@ -217,3 +234,5 @@ Drive). Soft deletes (`deletedAt`) propagate across devices during sync.
 - `DateTimeUtilsTest` — day bounds, recurrence stepping, month geometry, overdue detection
 - `RecurrenceExpanderTest` — daily/weekly-with-interval expansion, occurrences starting
   before the query range, id/duration preserved across occurrences
+- `BudgetCalculationsTest` — outstanding income/expense totals, per-list progress,
+  zero-item edge case

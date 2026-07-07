@@ -7,12 +7,16 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.unifiedproductivity.app.data.dao.BudgetItemDao
+import com.unifiedproductivity.app.data.dao.BudgetListDao
 import com.unifiedproductivity.app.data.dao.CalendarDao
 import com.unifiedproductivity.app.data.dao.EventDao
 import com.unifiedproductivity.app.data.dao.FolderDao
 import com.unifiedproductivity.app.data.dao.NoteDao
 import com.unifiedproductivity.app.data.dao.ReminderDao
 import com.unifiedproductivity.app.data.dao.ReminderListDao
+import com.unifiedproductivity.app.data.entity.BudgetItem
+import com.unifiedproductivity.app.data.entity.BudgetList
 import com.unifiedproductivity.app.data.entity.CalendarEntity
 import com.unifiedproductivity.app.data.entity.Event
 import com.unifiedproductivity.app.data.entity.Folder
@@ -29,9 +33,11 @@ import com.unifiedproductivity.app.data.entity.Subtask
         Subtask::class,
         ReminderList::class,
         CalendarEntity::class,
-        Event::class
+        Event::class,
+        BudgetList::class,
+        BudgetItem::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -43,6 +49,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun reminderListDao(): ReminderListDao
     abstract fun calendarDao(): CalendarDao
     abstract fun eventDao(): EventDao
+    abstract fun budgetListDao(): BudgetListDao
+    abstract fun budgetItemDao(): BudgetItemDao
 
     companion object {
         @Volatile
@@ -69,6 +77,35 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 → v5: Budget module (lists + income/expense items); reminders gained an optional cost. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE reminders ADD COLUMN amount INTEGER")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS budget_lists (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "name TEXT NOT NULL, " +
+                        "createdAt INTEGER NOT NULL, " +
+                        "deletedAt INTEGER)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS budget_items (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "listId TEXT NOT NULL, " +
+                        "name TEXT NOT NULL, " +
+                        "amount INTEGER NOT NULL, " +
+                        "type TEXT NOT NULL, " +
+                        "isCompleted INTEGER NOT NULL, " +
+                        "dueDate INTEGER, " +
+                        "createdAt INTEGER NOT NULL, " +
+                        "modifiedAt INTEGER NOT NULL, " +
+                        "deletedAt INTEGER)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_budget_items_listId ON budget_items(listId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_budget_items_dueDate ON budget_items(dueDate)")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -76,7 +113,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "unified_productivity.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

@@ -54,23 +54,32 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.unifiedproductivity.app.data.entity.BudgetItem
 import com.unifiedproductivity.app.data.entity.Event
+import com.unifiedproductivity.app.ui.theme.AccentGreen
+import com.unifiedproductivity.app.ui.theme.PriorityHigh
 import com.unifiedproductivity.app.ui.util.parseHexColor
+import com.unifiedproductivity.app.util.CurrencyFormatter
 import com.unifiedproductivity.app.util.DateTimeUtils
+import com.unifiedproductivity.app.data.model.BudgetItemType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     viewModel: CalendarViewModel,
     onOpenNote: (String) -> Unit,
+    onOpenBudget: () -> Unit,
     onBack: () -> Unit
 ) {
     val visibleMonth by viewModel.visibleMonth.collectAsStateWithLifecycle()
     val selectedDay by viewModel.selectedDay.collectAsStateWithLifecycle()
     val monthEvents by viewModel.monthEvents.collectAsStateWithLifecycle()
     val dayEvents by viewModel.selectedDayEvents.collectAsStateWithLifecycle()
+    val monthBudgetItems by viewModel.monthBudgetItems.collectAsStateWithLifecycle()
+    val dayBudgetItems by viewModel.selectedDayBudgetItems.collectAsStateWithLifecycle()
     // Collecting here keeps the calendars flow active so a default calendar id is
     // always available when saving (this not being collected was the save bug).
     val calendars by viewModel.calendars.collectAsStateWithLifecycle()
@@ -116,6 +125,9 @@ fun CalendarScreen(
                 eventDays = remember(monthEvents) {
                     monthEvents.map { DateTimeUtils.startOfDay(it.startDateTime) }.toSet()
                 },
+                budgetDays = remember(monthBudgetItems) {
+                    monthBudgetItems.mapNotNull { it.dueDate?.let(DateTimeUtils::startOfDay) }.toSet()
+                },
                 onSelectDay = viewModel::selectDay,
                 modifier = Modifier.pointerInput(Unit) {
                     detectHorizontalDragGestures(
@@ -137,7 +149,7 @@ fun CalendarScreen(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-            if (dayEvents.isEmpty()) {
+            if (dayEvents.isEmpty() && dayBudgetItems.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     Text(
                         "No events — tap + to schedule one",
@@ -150,7 +162,7 @@ fun CalendarScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(dayEvents, key = { it.id }) { event ->
+                    items(dayEvents, key = { "ev-${it.id}" }) { event ->
                         EventItem(
                             event = event,
                             color = parseHexColor(event.color ?: viewModel.calendarColor(event.calendarId)),
@@ -158,6 +170,9 @@ fun CalendarScreen(
                             onOpenNote = { viewModel.openLinkedNote(event, onOpenNote) },
                             onDelete = { viewModel.deleteEvent(event.id) }
                         )
+                    }
+                    items(dayBudgetItems, key = { "bd-${it.id}" }) { item ->
+                        BudgetDueItem(item = item, onClick = onOpenBudget)
                     }
                 }
             }
@@ -199,6 +214,7 @@ private fun MonthGrid(
     visibleMonth: Long,
     selectedDay: Long,
     eventDays: Set<Long>,
+    budgetDays: Set<Long>,
     onSelectDay: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -224,6 +240,7 @@ private fun MonthGrid(
                                 isSelected = dayStart == selectedDay,
                                 isToday = dayStart == today,
                                 hasEvent = eventDays.contains(dayStart),
+                                hasBudgetItem = budgetDays.contains(dayStart),
                                 onClick = { onSelectDay(dayStart) }
                             )
                         }
@@ -240,6 +257,7 @@ private fun DayCell(
     isSelected: Boolean,
     isToday: Boolean,
     hasEvent: Boolean,
+    hasBudgetItem: Boolean,
     onClick: () -> Unit
 ) {
     Column(
@@ -267,16 +285,29 @@ private fun DayCell(
                 )
             }
         }
-        Box(
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier
                 .padding(top = 2.dp)
-                .size(5.dp)
-                .clip(CircleShape)
-                .then(
-                    if (hasEvent) Modifier.background(MaterialTheme.colorScheme.secondary)
-                    else Modifier
+                .height(5.dp)
+        ) {
+            if (hasEvent) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondary)
                 )
-        )
+            }
+            if (hasBudgetItem) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(AccentGreen)
+                )
+            }
+        }
     }
 }
 
@@ -342,6 +373,43 @@ private fun EventItem(
                 Icon(Icons.Filled.Delete, contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
             }
+        }
+    }
+}
+
+@Composable
+private fun BudgetDueItem(item: BudgetItem, onClick: () -> Unit) {
+    val color = if (item.type == BudgetItemType.INCOME) AccentGreen else PriorityHigh
+    Card(onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 4.dp, height = 40.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(color)
+            )
+            Spacer(Modifier.size(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    item.name.ifBlank { "(untitled budget item)" },
+                    style = MaterialTheme.typography.bodyLarge,
+                    textDecoration = if (item.isCompleted) TextDecoration.LineThrough else null
+                )
+                Text(
+                    if (item.type == BudgetItemType.INCOME) "Income" else "Expense",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            Text(
+                (if (item.type == BudgetItemType.INCOME) "+" else "-") + CurrencyFormatter.format(item.amount),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = color
+            )
         }
     }
 }
