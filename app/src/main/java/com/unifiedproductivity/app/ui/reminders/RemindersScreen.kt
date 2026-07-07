@@ -47,6 +47,7 @@ import com.unifiedproductivity.app.ui.common.SwipeToDelete
 import com.unifiedproductivity.app.ui.theme.PriorityHigh
 import com.unifiedproductivity.app.ui.theme.PriorityLow
 import com.unifiedproductivity.app.ui.theme.PriorityMedium
+import com.unifiedproductivity.app.util.CurrencyFormatter
 import com.unifiedproductivity.app.util.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -203,6 +204,13 @@ private fun ReminderItem(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     }
+                }
+                if (reminder.amount != null) {
+                    Text(
+                        CurrencyFormatter.format(reminder.amount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
                 }
                 if (reminder.blockedBy.isNotEmpty()) {
                     Text("Blocked", style = MaterialTheme.typography.labelSmall, color = PriorityMedium)

@@ -2,6 +2,7 @@ package com.unifiedproductivity.app.di
 
 import android.content.Context
 import com.unifiedproductivity.app.data.AppDatabase
+import com.unifiedproductivity.app.data.repository.BudgetRepository
 import com.unifiedproductivity.app.data.repository.CalendarRepository
 import com.unifiedproductivity.app.data.repository.NotesRepository
 import com.unifiedproductivity.app.data.repository.RemindersRepository
@@ -27,6 +28,8 @@ class AppContainer(context: Context) {
 
     val calendarRepository =
         CalendarRepository(database.calendarDao(), database.eventDao())
+
+    val budgetRepository = BudgetRepository(database.budgetListDao(), database.budgetItemDao())
 
     val linkService = LinkService(remindersRepository, calendarRepository, notesRepository)
 

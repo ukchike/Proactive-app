@@ -2,8 +2,10 @@ package com.unifiedproductivity.app.ui.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.unifiedproductivity.app.data.entity.BudgetItem
 import com.unifiedproductivity.app.data.entity.CalendarEntity
 import com.unifiedproductivity.app.data.entity.Event
+import com.unifiedproductivity.app.data.repository.BudgetRepository
 import com.unifiedproductivity.app.data.repository.CalendarRepository
 import com.unifiedproductivity.app.integration.LinkService
 import com.unifiedproductivity.app.notifications.EventScheduler
@@ -21,7 +23,8 @@ import kotlinx.coroutines.launch
 class CalendarViewModel(
     private val repository: CalendarRepository,
     private val linkService: LinkService,
-    private val scheduler: EventScheduler
+    private val scheduler: EventScheduler,
+    private val budgetRepository: BudgetRepository
 ) : ViewModel() {
 
     /** First-of-month timestamp for the month currently displayed. */
@@ -46,6 +49,18 @@ class CalendarViewModel(
     val selectedDayEvents: StateFlow<List<Event>> =
         _selectedDay.flatMapLatest { day ->
             repository.observeEventsInRange(day, DateTimeUtils.endOfDay(day))
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Budget items due within the visible month (used to draw the second dot color). */
+    val monthBudgetItems: StateFlow<List<BudgetItem>> =
+        _visibleMonth.flatMapLatest { month ->
+            budgetRepository.observeItemsDueBetween(month, DateTimeUtils.addMonths(month, 1))
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Budget items due on the selected day (shown alongside events in the agenda). */
+    val selectedDayBudgetItems: StateFlow<List<BudgetItem>> =
+        _selectedDay.flatMapLatest { day ->
+            budgetRepository.observeItemsDueBetween(day, DateTimeUtils.endOfDay(day))
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun previousMonth() {

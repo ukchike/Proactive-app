@@ -42,6 +42,8 @@ data class Reminder(
     val recurrenceInterval: Int = 1,
     /** Free-form place/address (e.g. "Client office, Victoria Island"). */
     val location: String? = null,
+    /** Optional cost associated with this task (e.g. "Pay for data" — ₦5,000). */
+    val amount: Long? = null,
     /** Optional link to a calendar "focus time" block. */
     val linkedEventId: String? = null,
     val createdAt: Long = System.currentTimeMillis(),

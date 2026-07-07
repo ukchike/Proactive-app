@@ -3,6 +3,7 @@ package com.unifiedproductivity.app.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.unifiedproductivity.app.di.AppContainer
+import com.unifiedproductivity.app.ui.budget.BudgetViewModel
 import com.unifiedproductivity.app.ui.calendar.CalendarViewModel
 import com.unifiedproductivity.app.ui.home.HomeViewModel
 import com.unifiedproductivity.app.ui.notes.NotesViewModel
@@ -28,18 +29,23 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             CalendarViewModel(
                 container.calendarRepository,
                 container.linkService,
-                container.eventScheduler
+                container.eventScheduler,
+                container.budgetRepository
             ) as T
 
         modelClass.isAssignableFrom(HomeViewModel::class.java) ->
             HomeViewModel(
                 container.remindersRepository,
                 container.calendarRepository,
-                container.notesRepository
+                container.notesRepository,
+                container.budgetRepository
             ) as T
 
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
             SettingsViewModel(container.driveSyncManager, container.themePreferences) as T
+
+        modelClass.isAssignableFrom(BudgetViewModel::class.java) ->
+            BudgetViewModel(container.budgetRepository) as T
 
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }

@@ -152,7 +152,8 @@ class DriveSyncManager(
         private val SYNC_FILES = listOf(
             BackupManager.NOTES_FILE,
             BackupManager.REMINDERS_FILE,
-            BackupManager.CALENDAR_FILE
+            BackupManager.CALENDAR_FILE,
+            BackupManager.BUDGET_FILE
         )
     }
 }

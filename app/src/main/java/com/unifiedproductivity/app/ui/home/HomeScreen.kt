@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
@@ -37,15 +38,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.unifiedproductivity.app.data.entity.BudgetItem
 import com.unifiedproductivity.app.data.entity.Event
 import com.unifiedproductivity.app.data.entity.Note
 import com.unifiedproductivity.app.data.entity.Reminder
 import com.unifiedproductivity.app.ui.notes.eisenhowerColor
 import com.unifiedproductivity.app.ui.theme.AccentGray
+import com.unifiedproductivity.app.ui.theme.AccentGreen
 import com.unifiedproductivity.app.ui.theme.CalendarAccent
 import com.unifiedproductivity.app.ui.theme.NotesAccent
 import com.unifiedproductivity.app.ui.theme.PriorityHigh
 import com.unifiedproductivity.app.ui.theme.RemindersAccent
+import com.unifiedproductivity.app.util.CurrencyFormatter
 import com.unifiedproductivity.app.util.DateTimeUtils
 
 /**
@@ -59,6 +63,7 @@ fun HomeScreen(
     onOpenReminders: () -> Unit,
     onOpenCalendar: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenBudget: () -> Unit,
     onOpenNote: (String) -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -79,7 +84,7 @@ fun HomeScreen(
             )
         }
 
-        // App-like module tiles (2×2).
+        // App-like module tiles.
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ModuleTile("Notes", Icons.Filled.Description, NotesAccent, Modifier.weight(1f), onOpenNotes)
@@ -89,7 +94,33 @@ fun HomeScreen(
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ModuleTile("Calendar", Icons.Filled.CalendarMonth, CalendarAccent, Modifier.weight(1f), onOpenCalendar)
+                ModuleTile("Budget", Icons.Filled.AccountBalanceWallet, AccentGreen, Modifier.weight(1f), onOpenBudget)
+            }
+        }
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ModuleTile("Settings", Icons.Filled.Settings, AccentGray, Modifier.weight(1f), onOpenSettings)
+            }
+        }
+
+        // ----- Finances -----
+        item { SectionHeader("Finances", AccentGreen, Icons.Filled.AccountBalanceWallet) }
+        item {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                FinanceSummaryCard(
+                    label = "Outstanding Income",
+                    amount = state.outstandingIncome,
+                    color = AccentGreen,
+                    onClick = onOpenBudget,
+                    modifier = Modifier.weight(1f)
+                )
+                FinanceSummaryCard(
+                    label = "Outstanding Expenses",
+                    amount = state.outstandingExpenses,
+                    color = PriorityHigh,
+                    onClick = onOpenBudget,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
@@ -116,7 +147,7 @@ fun HomeScreen(
         }
 
         item { SectionHeader("Today", CalendarAccent, Icons.Filled.CalendarMonth) }
-        if (state.todayEvents.isEmpty() && state.todayReminders.isEmpty()) {
+        if (state.todayEvents.isEmpty() && state.todayReminders.isEmpty() && state.todayBudgetItems.isEmpty()) {
             item { EmptyHint("Nothing due today — nice.") }
         } else {
             items(state.todayEvents, key = { "ev-${it.id}" }) { event ->
@@ -124,6 +155,9 @@ fun HomeScreen(
             }
             items(state.todayReminders, key = { "td-${it.id}" }) { reminder ->
                 ReminderRow(reminder, overdue = false, onClick = onOpenReminders)
+            }
+            items(state.todayBudgetItems, key = { "bd-${it.id}" }) { item ->
+                BudgetDueRow(item, onClick = onOpenBudget)
             }
         }
 
@@ -240,6 +274,51 @@ private fun ReminderRow(reminder: Reminder, overdue: Boolean, onClick: () -> Uni
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FinanceSummaryCard(
+    label: String,
+    amount: Long,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(onClick = onClick, modifier = modifier) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = color)
+            Text(
+                CurrencyFormatter.format(amount),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun BudgetDueRow(item: BudgetItem, onClick: () -> Unit) {
+    Card(onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.AccountBalanceWallet,
+                contentDescription = null,
+                tint = AccentGreen,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.size(12.dp))
+            Text(item.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(
+                CurrencyFormatter.format(item.amount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
         }
     }
 }

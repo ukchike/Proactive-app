@@ -51,3 +51,10 @@ enum class SmartList(val label: String) {
     OVERDUE("Overdue"),
     COMPLETED("Completed")
 }
+
+/** Whether a budget line item is money coming in or going out. */
+@Serializable
+enum class BudgetItemType(val label: String) {
+    INCOME("Income"),
+    EXPENSE("Expense")
+}
